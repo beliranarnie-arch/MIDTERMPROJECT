@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jose Rizal: Interactive Learning & Assessment</title>
+    <style>
+        :root {
+            --primary: #2c3e50;
+            --accent: #d4af37;
+            --success: #27ae60;
+            --error: #c0392b;
+            --light: #fdfaf0;
+        }
+
+        body {
+            background-color: #d1d8e0;
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        header {
+            background: var(--primary);
+            color: white;
+            width: 100%;
+            padding: 20px 0;
+            text-align: center;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+        }
+
+        .module-container {
+            max-width: 800px;
+            width: 95%;
+            background: var(--light);
+            margin: 30px 0;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        #lesson-img {
+            width: 100%;
+            max-height: 350px;
+            object-fit: cover;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        /* Assessment Styling */
+        .assessment-box {
+            background: #f9f9f9;
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin-top: 30px;
+            border-radius: 10px;
+        }
+
+        .option-btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: 1px solid #ddd;
+            background: white;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 1rem;
+            transition: 0.2s;
+        }
+
+        .option-btn:hover { background: #f0f0f0; }
+        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
+        .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
+
+        .controls {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 30px;
+        }
+
+        button.nav-btn {
+            padding: 12px 30px;
+            border-radius: 5px;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+            background: var(--primary);
+            color: white;
+        }
+
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        
+        #feedback { font-weight: bold; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h2>Digital Learning Companion: Rizal Module</h2>
+        <p>Score: <span id="score">0</span></p>
+    </header>
+
+    <div class="module-container">
+        <div id="lesson-view">
+            <h1 id="title">Loading...</h1>
+            <img id="lesson-img" src="" alt="Lesson Image">
+            <div id="body-text" style="line-height: 1.6;"></div>
+
+            <div class="assessment-box">
+                <h3>🔍 Knowledge Check</h3>
+                <p id="question-text"></p>
+                <div id="options-container"></div>
+                <p id="feedback"></p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button id="prevBtn" class="nav-btn" onclick="navigate(-1)">← Back</button>
+            <button id="nextBtn" class="nav-btn" onclick="navigate(1)" disabled>Lock: Answer Question to Proceed</button>
+        </div>
+    </div>
+
+    <script>
+        const rizalData = [
+            {
+                title: "Chapter 1: Childhood in Calamba",
+                img: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Jose_Rizal_full.jpg",
+                text: "Jose Rizal was born on June 19, 1861. His mother, Teodora Alonso, was his first teacher and taught him to read at age three. His family was wealthy and valued education highly.",
+                q: "Who was Jose Rizal's first teacher?",
+                options: ["His father Francisco", "His mother Teodora", "The village priest", "His brother Paciano"],
+                ans: 1
+            },
+            {
+                title: "Chapter 2: The Purpose of Education",
+                img: "https://upload.wikimedia.org/wikipedia/commons/5/53/Jose_rizal_01.jpg",
+                text: "Rizal studied Ophthalmology in Europe because he wanted to cure his mother's failing eyesight. He believed that education was the key to liberating the Filipino people from ignorance.",
+                q: "Why did Rizal choose to study Ophthalmology (eye medicine)?",
+                options: ["To get rich in Spain", "To cure his mother's eyes", "Because he liked wearing glasses", "To become a famous writer"],
+                ans: 1
+            },
+            {
+                title: "Chapter 3: The Dangerous Novels",
+                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Noli_Me_Tangere_Manuscript_Cover.jpg/800px-Noli_Me_Tangere_Manuscript_Cover.jpg",
+                text: "Rizal wrote 'Noli Me Tangere' to expose the corruption and abuses of the Spanish friars and government officials in the Philippines. This made him a target of the Spanish authorities.",
+                q: "What was the main purpose of Rizal's novels?",
+                options: ["To teach Spanish grammar", "To tell a love story only", "To expose social corruption and abuse", "To promote Spanish rule"],
+                ans: 2
+            }
+        ];
+
+        let currentIdx = 0;
+        let totalScore = 0;
+        let answeredCorrectly = false;
+
+        function render() {
+            const data = rizalData[currentIdx];
+            document.getElementById('title').innerText = data.title;
+            document.getElementById('lesson-img').src = data.img;
+            document.getElementById('body-text').innerHTML = `<p>${data.text}</p>`;
+            document.getElementById('question-text').innerText = data.q;
+            
+            const optionsDiv = document.getElementById('options-container');
+            optionsDiv.innerHTML = "";
+            answeredCorrectly = false;
+            document.getElementById('nextBtn').disabled = true;
+            document.getElementById('nextBtn').innerText = "Lock: Answer correctly to proceed";
+            document.getElementById('feedback').innerText = "";
+
+            data.options.forEach((opt, i) => {
+                const btn = document.createElement('button');
+                btn.className = "option-btn";
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(i, data.ans, btn);
+                optionsDiv.appendChild(btn);
+            });
+
+            document.getElementById('prevBtn').disabled = (currentIdx === 0);
+        }
+
+        function checkAnswer(selected, correct, btn) {
+            if (answeredCorrectly) return; // Prevent multiple scoring
+
+            const feedback = document.getElementById('feedback');
+            const allBtns = document.querySelectorAll('.option-btn');
+
+            if (selected === correct) {
+                btn.classList.add('correct');
+                feedback.innerText = "⭐ Correct! You may now proceed.";
+                feedback.style.color = "green";
+                totalScore += 10;
+                document.getElementById('score').innerText = totalScore;
+                answeredCorrectly = true;
+                document.getElementById('nextBtn').disabled = false;
+                document.getElementById('nextBtn').innerText = (currentIdx === rizalData.length - 1) ? "Finish Module ✔" : "Next Chapter →";
+            } else {
+                btn.classList.add('wrong');
+                feedback.innerText = "❌ That's not right. Review the text above and try again!";
+                feedback.style.color = "red";
+            }
+        }
+
+        function navigate(dir) {
+            currentIdx += dir;
+            if (currentIdx >= rizalData.length) {
+                alert("Final Score: " + totalScore + "! You have mastered the Rizal introduction.");
+                currentIdx = rizalData.length - 1;
+                return;
+            }
+            render();
+        }
+
+        render();
+    </script>
+</body>
+</html>
