@@ -1,0 +1,323 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIDTERMPROJECT - Flask API</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f2f5f9;
+            color: #222;
+            margin: 0;
+            padding: 24px;
+        }
+
+        header {
+            background: #174a8b;
+            color: white;
+            text-align: center;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        main {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 18px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000012;
+        }
+
+        h2 {
+            margin-top: 0;
+            color: #174a8b;
+        }
+
+        input, select, button {
+            font: inherit;
+            padding: 10px;
+            margin: 5px 3px 5px 0;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        input, select {
+            max-width: 100%;
+        }
+
+        button {
+            background: #174a8b;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #103765;
+        }
+
+        .result {
+            margin-top: 12px;
+            overflow-wrap: anywhere;
+        }
+
+        pre {
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            background: #f4f6f8;
+            padding: 12px;
+            border-radius: 6px;
+        }
+
+        .student {
+            border-bottom: 1px solid #ddd;
+            padding: 12px 0;
+        }
+
+        .student:last-child {
+            border-bottom: none;
+        }
+
+        footer {
+            text-align: center;
+            color: #666;
+            padding: 15px;
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <h1>MIDTERMPROJECT</h1>
+    <p>Flask API and SQLite Student Information System</p>
+</header>
+
+<main>
+    <section class="card">
+        <h2>Student Information API</h2>
+        <button onclick="loadEndpoint('/student', 'apiResult')">
+            View Student Information
+        </button>
+        <div id="apiResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Greeting API</h2>
+        <input type="text" id="greetingName" placeholder="Enter your name">
+        <button onclick="loadGreeting()">Get Greeting</button>
+        <div id="greetingResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Course API</h2>
+        <button onclick="loadEndpoint('/course', 'courseResult')">
+            View Course
+        </button>
+        <div id="courseResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Add New Student</h2>
+
+        <form id="addStudentForm">
+            <input type="text" id="newStudentId"
+                   placeholder="Student ID (e.g. 2026-00128)" required>
+
+            <input type="text" id="newStudentName"
+                   placeholder="Full Name" required>
+
+            <input type="text" id="newProgram"
+                   placeholder="Program (BSIT or BSCS)" required>
+
+            <input type="number" id="newYear"
+                   placeholder="Year Level (1-4)"
+                   min="1" max="4" required>
+
+            <input type="text" id="newSection"
+                   placeholder="Section (A, B, C)" required>
+
+            <button type="submit">Add Student</button>
+        </form>
+
+        <div id="addStudentMessage" class="result" role="status"></div>
+    </section>
+
+    <section class="card">
+        <h2>Students from SQLite Database</h2>
+        <button onclick="loadStudents()">View All Students</button>
+        <div id="studentsResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Find One Student</h2>
+        <p>Enter the student's database ID (the numeric ID shown in the list).</p>
+        <input type="number" id="databaseId" min="1"
+               placeholder="Database ID">
+        <button onclick="loadStudentById()">Find Student</button>
+        <div id="oneStudentResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Filter Students by Section</h2>
+        <select id="sectionSelect">
+            <option value="A">Section A</option>
+            <option value="B">Section B</option>
+            <option value="C">Section C</option>
+        </select>
+        <button onclick="loadBySection()">Filter Students</button>
+        <div id="sectionResult" class="result"></div>
+    </section>
+
+    <section class="card">
+        <h2>Other API Endpoints</h2>
+        <button onclick="loadEndpoint('/teacher', 'otherResult')">Teacher</button>
+        <button onclick="loadEndpoint('/subjects', 'otherResult')">Subjects</button>
+        <button onclick="loadEndpoint('/schedule', 'otherResult')">Schedule</button>
+        <button onclick="loadEndpoint('/about', 'otherResult')">About</button>
+        <button onclick="loadEndpoint('/api', 'otherResult')">General API</button>
+        <div id="otherResult" class="result"></div>
+    </section>
+</main>
+
+<footer>MIDTERMPROJECT | Flask + SQLite</footer>
+
+<script>
+    async function fetchJSON(url, options = {}) {
+        const response = await fetch(url, options);
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Request failed.");
+        }
+
+        return data;
+    }
+
+    function showError(elementId, error) {
+        document.getElementById(elementId).textContent =
+            "Error: " + error.message;
+    }
+
+    function showJSON(elementId, data) {
+        document.getElementById(elementId).innerHTML = "";
+
+        const pre = document.createElement("pre");
+        pre.textContent = JSON.stringify(data, null, 2);
+
+        document.getElementById(elementId).appendChild(pre);
+    }
+
+    async function loadEndpoint(url, elementId) {
+        try {
+            const data = await fetchJSON(url);
+            showJSON(elementId, data);
+        } catch (error) {
+            showError(elementId, error);
+        }
+    }
+
+    async function loadGreeting() {
+        const name = document.getElementById("greetingName").value.trim();
+        const url = "/hello?name=" + encodeURIComponent(name || "Student");
+        await loadEndpoint(url, "greetingResult");
+    }
+
+    async function loadStudents() {
+        const container = document.getElementById("studentsResult");
+        container.textContent = "Loading students...";
+
+        try {
+            const students = await fetchJSON("/students");
+            container.innerHTML = "";
+
+            if (students.length === 0) {
+                container.textContent = "No students found in the database.";
+                return;
+            }
+
+            students.forEach(student => {
+                const item = document.createElement("div");
+                item.className = "student";
+
+                const details = document.createElement("pre");
+                details.textContent = JSON.stringify(student, null, 2);
+
+                item.appendChild(details);
+                container.appendChild(item);
+            });
+        } catch (error) {
+            showError("studentsResult", error);
+        }
+    }
+
+    async function loadStudentById() {
+        const id = document.getElementById("databaseId").value.trim();
+
+        if (!id || Number(id) < 1) {
+            document.getElementById("oneStudentResult").textContent =
+                "Please enter a valid database ID.";
+            return;
+        }
+
+        await loadEndpoint(
+            "/students/" + encodeURIComponent(id),
+            "oneStudentResult"
+        );
+    }
+
+    async function loadBySection() {
+        const section = document.getElementById("sectionSelect").value;
+        await loadEndpoint(
+            "/students/section/" + encodeURIComponent(section),
+            "sectionResult"
+        );
+    }
+
+    document.getElementById("addStudentForm")
+        .addEventListener("submit", async function(event) {
+            event.preventDefault();
+
+            const student = {
+                student_id: document.getElementById("newStudentId").value.trim(),
+                name: document.getElementById("newStudentName").value.trim(),
+                program: document.getElementById("newProgram").value.trim(),
+                year: document.getElementById("newYear").value,
+                section: document.getElementById("newSection").value.trim()
+            };
+
+            const message = document.getElementById("addStudentMessage");
+            message.textContent = "Saving student...";
+
+            try {
+                const result = await fetchJSON("/students/add", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(student)
+                });
+
+                message.textContent = result.message;
+                document.getElementById("addStudentForm").reset();
+
+                await loadStudents();
+            } catch (error) {
+                message.textContent = "Error: " + error.message;
+            }
+        });
+</script>
+</body>
+</html>
