@@ -4,406 +4,143 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student CRUD Management System</title>
-
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f1f5f9;
-            margin: 0;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: auto;
-        }
-
-        h1, h2 {
-            color: #164e9b;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            margin-bottom: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px #00000012;
-        }
-
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 12px;
-        }
-
-        input, select, button {
-            padding: 10px;
-            border-radius: 5px;
-            border: 1px solid #cbd5e1;
-            box-sizing: border-box;
-            width: 100%;
-        }
-
-        button {
-            border: none;
-            color: white;
-            background: #164e9b;
-            cursor: pointer;
-            margin-top: 8px;
-        }
-
-        button:hover {
-            opacity: 0.85;
-        }
-
-        .edit {
-            background: #d97706;
-        }
-
-        .delete {
-            background: #dc2626;
-        }
-
-        .cancel {
-            background: #64748b;
-        }
-
-        .table-wrapper {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 12px;
-        }
-
-        th, td {
-            padding: 10px;
-            text-align: left;
-            border-bottom: 1px solid #e2e8f0;
-        }
-
-        th {
-            background: #164e9b;
-            color: white;
-        }
-
-        .message {
-            margin: 12px 0;
-            font-weight: bold;
-        }
-
-        .actions {
-            display: flex;
-            gap: 6px;
-        }
-
-        .actions button {
-            min-width: 65px;
-        }
-    </style>
+    <title>Student Information System</title>
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='script.js') }}" defer></script>
 </head>
-
 <body>
 <div class="container">
-    <h1>Student CRUD Management System</h1>
-    <p>Create, view, update, and delete student records.</p>
 
-    <div class="card">
+    <header>
+        <h1>Student Information System</h1>
+        <p>Laboratory Activity 8: CRUD Web Application</p>
+        <p>Developer: Arnie Beliran</p>
+        <a class="link-button gray" href="/api" target="_blank">View API Endpoints</a>
+        <a class="link-button gray" href="/api/students" target="_blank">View Student JSON</a>
+    </header>
+
+    <section class="card">
         <h2 id="formTitle">Add Student</h2>
-        <div id="message" class="message"></div>
 
         <form id="studentForm">
             <input type="hidden" id="recordId">
 
             <div class="form-grid">
-                <input id="student_id" placeholder="Student ID" required>
-                <input id="name" placeholder="Full Name" required>
-                <input id="program" placeholder="Program (e.g. BSIT)" required>
-
-                <select id="year" required>
-                    <option value="">Select Year</option>
-                    <option value="1">1st Year</option>
-                    <option value="2">2nd Year</option>
-                    <option value="3">3rd Year</option>
-                    <option value="4">4th Year</option>
-                    <option value="5">5th Year</option>
-                    <option value="6">6th Year</option>
-                </select>
-
-                <input id="section" placeholder="Section (e.g. A)" required>
+                <div>
+                    <label for="student_id">Student ID</label>
+                    <input id="student_id" type="text"
+                           placeholder="2026-00124" required>
+                </div>
+                <div>
+                    <label for="name">Full Name</label>
+                    <input id="name" type="text"
+                           placeholder="Juan Dela Cruz" required>
+                </div>
+                <div>
+                    <label for="program">Program</label>
+                    <input id="program" type="text"
+                           placeholder="BSIT" required>
+                </div>
+                <div>
+                    <label for="year">Year</label>
+                    <select id="year" required>
+                        <option value="">Select year</option>
+                        <option value="1">1st Year</option>
+                        <option value="2">2nd Year</option>
+                        <option value="3">3rd Year</option>
+                        <option value="4">4th Year</option>
+                        <option value="5">5th Year</option>
+                        <option value="6">6th Year</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="section">Section</label>
+                    <input id="section" type="text"
+                           placeholder="A" required>
+                </div>
             </div>
 
-            <button type="submit" id="saveButton">Save Student</button>
-            <button type="button" class="cancel"
-                    id="cancelButton" hidden onclick="resetForm()">
-                Cancel Update
+            <button type="submit" class="green" id="submitButton">
+                Add Student
+            </button>
+            <button type="button" class="gray" id="clearButton">
+                Clear Form
             </button>
         </form>
-    </div>
 
-    <div class="card">
-        <h2>Student Records</h2>
+        <div id="message" class="message" role="status" aria-live="polite">
+            Ready to manage student records.
+        </div>
+    </section>
 
-        <input id="search" placeholder="Search student..."
-               oninput="renderStudents()">
+    <section class="card">
+        <h2>My Student Records (Local SQLite)</h2>
+        <p>These records are saved in your own database.</p>
 
-        <button onclick="loadStudents()">Refresh Records</button>
+        <label for="searchInput">Search by Student ID or Name</label>
+        <input id="searchInput" type="search"
+               placeholder="Enter student ID or name">
+
+        <button type="button" id="refreshButton">Refresh Records</button>
 
         <div class="table-wrapper">
             <table>
                 <thead>
-                <tr>
-                    <th>DB ID</th>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Program</th>
-                    <th>Year</th>
-                    <th>Section</th>
-                    <th>Actions</th>
-                </tr>
+                    <tr>
+                        <th>Database ID</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Program</th>
+                        <th>Year</th>
+                        <th>Section</th>
+                        <th>Source</th>
+                        <th>Actions</th>
+                    </tr>
                 </thead>
                 <tbody id="studentTable">
+                    <tr><td colspan="8">Loading records...</td></tr>
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-    <div class="card">
-        <h2>Classmate's Student Records (Read Only)</h2>
-        <button onclick="loadClassmateStudents()">
-            Load Classmate Records
+    <section class="card">
+        <h2>Classmate's Records (Remote API)</h2>
+        <p>These records are retrieved from your classmate's API and are read-only.</p>
+
+        <button type="button" id="loadPartnerButton">
+            Load Classmate's Records
         </button>
+
+        <div id="partnerMessage" class="message"
+             role="status" aria-live="polite">
+            Click the button to retrieve classmate records.
+        </div>
 
         <div class="table-wrapper">
             <table>
                 <thead>
-                <tr>
-                    <th>Student ID</th>
-                    <th>Name</th>
-                    <th>Program</th>
-                    <th>Year</th>
-                    <th>Section</th>
-                </tr>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Program</th>
+                        <th>Year</th>
+                        <th>Section</th>
+                        <th>Source</th>
+                        <th>Details</th>
+                    </tr>
                 </thead>
-                <tbody id="classmateTable"></tbody>
+                <tbody id="partnerTable">
+                    <tr><td colspan="7">No remote records loaded yet.</td></tr>
+                </tbody>
             </table>
         </div>
-    </div>
+
+        <h3>Selected Classmate Record Details</h3>
+        <pre id="partnerDetails" class="details">Select View Details beside a record.</pre>
+    </section>
+
 </div>
-
-<script>
-    const API = "/api/students";
-    let students = [];
-
-    function showMessage(message, isError = false) {
-        const element = document.getElementById("message");
-        element.textContent = message;
-        element.style.color = isError ? "#dc2626" : "#15803d";
-    }
-
-    async function apiRequest(url, method = "GET", data = null) {
-        const options = { method };
-
-        if (data !== null) {
-            options.headers = { "Content-Type": "application/json" };
-            options.body = JSON.stringify(data);
-        }
-
-        const response = await fetch(url, options);
-        const result = await response.json();
-
-        if (!response.ok) {
-            throw new Error(result.error || "Request failed.");
-        }
-
-        return result;
-    }
-
-    function getFormData() {
-        return {
-            student_id: document.getElementById("student_id").value.trim(),
-            name: document.getElementById("name").value.trim(),
-            program: document.getElementById("program").value.trim(),
-            year: Number(document.getElementById("year").value),
-            section: document.getElementById("section").value.trim()
-        };
-    }
-
-    // CREATE and UPDATE
-    document.getElementById("studentForm").addEventListener(
-        "submit", async function(event) {
-            event.preventDefault();
-
-            const recordId = document.getElementById("recordId").value;
-            const method = recordId ? "PUT" : "POST";
-            const url = recordId ? `${API}/${recordId}` : API;
-
-            try {
-                const result = await apiRequest(url, method, getFormData());
-                showMessage(result.message);
-                resetForm();
-                await loadStudents();
-            } catch (error) {
-                showMessage(error.message, true);
-            }
-        }
-    );
-
-    // READ
-    async function loadStudents() {
-        try {
-            students = await apiRequest(API);
-            renderStudents();
-        } catch (error) {
-            showMessage("Unable to load students: " + error.message, true);
-        }
-    }
-
-    function renderStudents() {
-        const search = document.getElementById("search").value.toLowerCase();
-        const table = document.getElementById("studentTable");
-        table.replaceChildren();
-
-        const filtered = students.filter(student =>
-            [
-                student.student_id,
-                student.name,
-                student.program,
-                student.year,
-                student.section
-            ].some(value => String(value).toLowerCase().includes(search))
-        );
-
-        filtered.forEach(student => {
-            const row = document.createElement("tr");
-
-            [
-                student.id,
-                student.student_id,
-                student.name,
-                student.program,
-                student.year,
-                student.section
-            ].forEach(value => {
-                const cell = document.createElement("td");
-                cell.textContent = value;
-                row.appendChild(cell);
-            });
-
-            const actions = document.createElement("td");
-            actions.className = "actions";
-
-            const editButton = document.createElement("button");
-            editButton.textContent = "Edit";
-            editButton.className = "edit";
-            editButton.onclick = () => editStudent(student.id);
-
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "Delete";
-            deleteButton.className = "delete";
-            deleteButton.onclick = () => deleteStudent(student.id);
-
-            actions.append(editButton, deleteButton);
-            row.appendChild(actions);
-            table.appendChild(row);
-        });
-
-        if (filtered.length === 0) {
-            const row = document.createElement("tr");
-            const cell = document.createElement("td");
-            cell.colSpan = 7;
-            cell.textContent = "No student records found.";
-            row.appendChild(cell);
-            table.appendChild(row);
-        }
-    }
-
-    // Fill the form for UPDATE
-    function editStudent(id) {
-        const student = students.find(item => item.id === id);
-        if (!student) return;
-
-        document.getElementById("recordId").value = student.id;
-        document.getElementById("student_id").value = student.student_id;
-        document.getElementById("name").value = student.name;
-        document.getElementById("program").value = student.program;
-        document.getElementById("year").value = student.year;
-        document.getElementById("section").value = student.section;
-
-        document.getElementById("formTitle").textContent = "Update Student";
-        document.getElementById("saveButton").textContent = "Update Student";
-        document.getElementById("cancelButton").hidden = false;
-
-        window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-
-    function resetForm() {
-        document.getElementById("studentForm").reset();
-        document.getElementById("recordId").value = "";
-        document.getElementById("formTitle").textContent = "Add Student";
-        document.getElementById("saveButton").textContent = "Save Student";
-        document.getElementById("cancelButton").hidden = true;
-    }
-
-    // DELETE
-    async function deleteStudent(id) {
-        const student = students.find(item => item.id === id);
-        if (!student) return;
-
-        if (!confirm(`Delete ${student.name}?`)) return;
-
-        try {
-            const result = await apiRequest(`${API}/${id}`, "DELETE");
-            showMessage(result.message);
-            await loadStudents();
-        } catch (error) {
-            showMessage(error.message, true);
-        }
-    }
-
-    // READ CLASSMATE RECORDS ONLY
-    async function loadClassmateStudents() {
-        const table = document.getElementById("classmateTable");
-        table.replaceChildren();
-
-        try {
-            const records = await apiRequest("/api/classmate/students");
-
-            records.forEach(student => {
-                const row = document.createElement("tr");
-
-                [
-                    student.student_id ?? student.id ?? "",
-                    student.name ?? "",
-                    student.program ?? "",
-                    student.year ?? "",
-                    student.section ?? ""
-                ].forEach(value => {
-                    const cell = document.createElement("td");
-                    cell.textContent = value;
-                    row.appendChild(cell);
-                });
-
-                table.appendChild(row);
-            });
-
-            if (records.length === 0) {
-                table.innerHTML = "<tr><td colspan='5'>No classmate records found.</td></tr>";
-            }
-        } catch (error) {
-            const row = document.createElement("tr");
-            const cell = document.createElement("td");
-            cell.colSpan = 5;
-            cell.textContent = "Unable to retrieve classmate records: " + error.message;
-            row.appendChild(cell);
-            table.appendChild(row);
-        }
-    }
-
-    loadStudents();
-</script>
 </body>
 </html>
