@@ -1,8 +1,5 @@
 
-from flask import (
-    Flask, jsonify, render_template_string,
-    request, redirect, url_for
-)
+from flask import Flask, jsonify, request, redirect, url_for, render_template_string
 import sqlite3
 import os
 import requests
@@ -11,12 +8,12 @@ app = Flask(__name__)
 
 DATABASE = "students.db"
 
-# Replace this if your classmate gives you another API URL.
+# Classmate's deployed API
 PARTNER_API_URL = "https://jasminerose-2.onrender.com/api/students"
 
 
 # ==================================================
-# DATABASE
+# DATABASE CONNECTION
 # ==================================================
 
 def get_db_connection():
@@ -26,12 +23,13 @@ def get_db_connection():
 
 
 def initialize_database():
-    conn = get_db_connection()
+    conn = sqlite3.connect(DATABASE)
+    cursor = conn.cursor()
 
-    conn.execute("""
+    cursor.execute("""
         CREATE TABLE IF NOT EXISTS students (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            student_id TEXT NOT NULL UNIQUE,
+            student_id TEXT UNIQUE NOT NULL,
             name TEXT NOT NULL,
             program TEXT NOT NULL,
             year INTEGER NOT NULL,
@@ -40,26 +38,22 @@ def initialize_database():
         )
     """)
 
-    columns = [
-        row[1]
-        for row in conn.execute(
-            "PRAGMA table_info(students)"
-        ).fetchall()
-    ]
+    cursor.execute("PRAGMA table_info(students)")
+    columns = [column[1] for column in cursor.fetchall()]
 
     if "source" not in columns:
-        conn.execute("""
+        cursor.execute("""
             ALTER TABLE students
             ADD COLUMN source TEXT DEFAULT 'Local'
         """)
 
-    conn.execute("""
+    cursor.execute("""
         UPDATE students
         SET source = 'Local'
         WHERE source IS NULL OR source = ''
     """)
 
-    conn.execute("""
+    cursor.execute("""
         INSERT OR IGNORE INTO students
         (student_id, name, program, year, section, source)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -77,359 +71,450 @@ def initialize_database():
 
 
 # ==================================================
-# SHARED CSS
+# SHARED HTML DESIGN
 # ==================================================
 
 STYLE = """
 <style>
-* {
-    box-sizing: border-box;
-}
+    * {
+        box-sizing: border-box;
+    }
 
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f1f5f9;
-    color: #1e293b;
-}
+    body {
+        font-family: Arial, sans-serif;
+        background: #f1f5f9;
+        color: #1e293b;
+        margin: 0;
+        padding: 24px;
+    }
 
-header {
-    background: #164e9b;
-    color: white;
-    text-align: center;
-    padding: 25px 15px;
-}
+    .container {
+        max-width: 1100px;
+        margin: 0 auto;
+        background: white;
+        padding: 25px;
+        border-radius: 12px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+    }
 
-header h1 {
-    margin: 0 0 8px;
-}
+    h1, h2 {
+        color: #164e9b;
+    }
 
-header p {
-    margin: 0;
-}
+    .button {
+        display: inline-block;
+        background: #164e9b;
+        color: white;
+        padding: 10px 14px;
+        margin: 4px 3px;
+        text-decoration: none;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+    }
 
-.container {
-    width: 92%;
-    max-width: 1100px;
-    margin: 30px auto;
-}
+    .button:hover {
+        background: #0f3973;
+    }
 
-.card {
-    background: white;
-    padding: 25px;
-    margin-bottom: 22px;
-    border-radius: 12px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.07);
-}
+    .danger {
+        background: #b91c1c;
+    }
 
-h2 {
-    color: #164e9b;
-    margin-top: 0;
-}
+    .success {
+        background: #15803d;
+    }
 
-p {
-    line-height: 1.6;
-}
+    .secondary {
+        background: #475569;
+    }
 
-.info-grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-}
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 18px;
+        background: white;
+    }
 
-.info-item {
-    background: #eff6ff;
-    padding: 15px;
-    border-radius: 8px;
-}
+    th, td {
+        border: 1px solid #dbe2ea;
+        padding: 10px;
+        text-align: left;
+    }
 
-.info-item strong {
-    display: block;
-    color: #164e9b;
-    margin-bottom: 6px;
-}
+    th {
+        background: #164e9b;
+        color: white;
+    }
 
-.button, button {
-    display: inline-block;
-    border: none;
-    border-radius: 6px;
-    padding: 11px 16px;
-    margin: 4px 3px 4px 0;
-    background: #164e9b;
-    color: white;
-    text-decoration: none;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-}
+    input, select {
+        width: 100%;
+        padding: 10px;
+        margin: 6px 0 14px;
+        border: 1px solid #cbd5e1;
+        border-radius: 5px;
+    }
 
-.button:hover, button:hover {
-    background: #0f3670;
-}
-
-.green {
-    background: #0f766e;
-}
-
-.green:hover {
-    background: #115e59;
-}
-
-.orange {
-    background: #c77712;
-}
-
-.orange:hover {
-    background: #9a5a0d;
-}
-
-.red {
-    background: #dc2626;
-}
-
-.red:hover {
-    background: #b91c1c;
-}
-
-.table-wrapper {
-    overflow-x: auto;
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 20px;
-    background: white;
-}
-
-th, td {
-    padding: 12px 10px;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
-}
-
-th {
-    background: #164e9b;
-    color: white;
-}
-
-tr:hover td {
-    background: #eff6ff;
-}
-
-label {
-    display: block;
-    font-weight: bold;
-    margin-top: 12px;
-}
-
-input, select {
-    display: block;
-    width: 100%;
-    padding: 11px;
-    margin: 7px 0 14px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    font-size: 15px;
-}
-
-footer {
-    text-align: center;
-    color: #64748b;
-    padding: 22px;
-}
-
-pre {
-    white-space: pre-wrap;
-    overflow-wrap: anywhere;
-    background: #f1f5f9;
-    padding: 15px;
-    border-radius: 8px;
-}
-
-@media (max-width: 600px) {
-    .info-grid {
-        grid-template-columns: 1fr;
+    label {
+        font-weight: bold;
     }
 
     .card {
+        background: #f8fafc;
+        border: 1px solid #dbe2ea;
         padding: 18px;
+        border-radius: 8px;
+        margin: 12px 0;
     }
-}
+
+    .message {
+        padding: 12px;
+        background: #e0f2fe;
+        border-radius: 6px;
+        margin: 12px 0;
+    }
+
+    pre {
+        background: #0f172a;
+        color: #e2e8f0;
+        padding: 16px;
+        border-radius: 6px;
+        overflow-x: auto;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+    }
+
+    @media (max-width: 700px) {
+        body {
+            padding: 10px;
+        }
+
+        .container {
+            padding: 12px;
+            overflow-x: auto;
+        }
+
+        table {
+            min-width: 650px;
+        }
+    }
 </style>
 """
 
 
 # ==================================================
-# DASHBOARD
+# HOME DASHBOARD
 # ==================================================
 
 @app.route("/")
 def home():
+    conn = get_db_connection()
+    total_students = conn.execute(
+        "SELECT COUNT(*) FROM students"
+    ).fetchone()[0]
+
+    local_students = conn.execute(
+        "SELECT COUNT(*) FROM students WHERE source = 'Local'"
+    ).fetchone()[0]
+
+    partner_students = conn.execute(
+        "SELECT COUNT(*) FROM students WHERE source = 'Classmate API'"
+    ).fetchone()[0]
+
+    conn.close()
+
     return render_template_string("""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport"
-              content="width=device-width, initial-scale=1">
-        <title>Student Information API</title>
-        {{ style | safe }}
+        <title>Student Information System</title>
+        {{ style|safe }}
     </head>
     <body>
-        <header>
-            <h1>Student Information API</h1>
-            <p>Flask and SQLite Database System</p>
-        </header>
+        <div class="container">
+            <h1>Student Information System</h1>
+            <p><strong>Developer:</strong> Arnie Beliran</p>
+            <p>Flask API with SQLite and System-to-System Integration</p>
 
-        <main class="container">
-            <section class="card">
-                <h2>Welcome to the Student Information System</h2>
-                <p>
-                    Manage your student records and exchange practice
-                    records with your classmate through REST APIs.
+            <div class="card">
+                <h2>Dashboard Summary</h2>
+                <p>Total student records: <strong>{{ total }}</strong></p>
+                <p>Local records: <strong>{{ local }}</strong></p>
+                <p>Imported classmate records:
+                    <strong>{{ partner }}</strong>
                 </p>
+            </div>
 
-                <a class="button" href="/api/students">
-                    View Students JSON
-                </a>
+            <h2>Student Management</h2>
+            <a class="button" href="/students">View Students</a>
+            <a class="button" href="/students/add">Add Student</a>
 
-                <a class="button green" href="/students">
-                    My Records
-                </a>
-
-                <a class="button orange" href="/students/add">
-                    Add Student
-                </a>
-
-                <a class="button" href="/integration">
-                    Integration Dashboard
-                </a>
-            </section>
-
-            <section class="card">
-                <h2>Developer Information</h2>
-                <div class="info-grid">
-                    <div class="info-item">
-                        <strong>Developer</strong>
-                        Arnie Beliran
-                    </div>
-                    <div class="info-item">
-                        <strong>Technology</strong>
-                        Python Flask
-                    </div>
-                    <div class="info-item">
-                        <strong>Database</strong>
-                        SQLite
-                    </div>
-                    <div class="info-item">
-                        <strong>API Endpoint</strong>
-                        /api/students
-                    </div>
-                </div>
-            </section>
-        </main>
-
-        <footer>Student Information API &copy; 2026</footer>
+            <h2>API and Integration</h2>
+            <a class="button" href="/api">View API Endpoints</a>
+            <a class="button" href="/api/students">View JSON API</a>
+            <a class="button" href="/partner-records">View Partner API</a>
+            <a class="button" href="/integration">Integration Dashboard</a>
+        </div>
     </body>
     </html>
-    """, style=STYLE)
+    """,
+    style=STYLE,
+    total=total_students,
+    local=local_students,
+    partner=partner_students)
 
 
 # ==================================================
-# CREATE AND READ JSON API
+# API ENDPOINT DOCUMENTATION
+# GET /api
+# ==================================================
+
+@app.route("/api", methods=["GET"])
+def api_documentation():
+    endpoints = [
+        {
+            "method": "GET",
+            "endpoint": "/api",
+            "description": "View the list of API endpoints"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/api/students",
+            "description": "Retrieve all student records in JSON"
+        },
+        {
+            "method": "POST",
+            "endpoint": "/api/students",
+            "description": "Create a student record using JSON"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/students",
+            "description": "View student records in the web interface"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/students/add",
+            "description": "Open the add-student form"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/partner-records",
+            "description": "Retrieve records from the classmate API"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/integration",
+            "description": "Open the integration dashboard"
+        },
+        {
+            "method": "POST",
+            "endpoint": "/import-student",
+            "description": "Import a selected partner record"
+        },
+        {
+            "method": "GET",
+            "endpoint": "/students/edit/<id>",
+            "description": "Open the edit form for a student"
+        },
+        {
+            "method": "POST",
+            "endpoint": "/students/edit/<id>",
+            "description": "Update a student record"
+        },
+        {
+            "method": "POST",
+            "endpoint": "/students/delete/<id>",
+            "description": "Delete a student record"
+        }
+    ]
+
+    return jsonify({
+        "application": "Student Information API",
+        "developer": "Arnie Beliran",
+        "database": "SQLite",
+        "partner_api": PARTNER_API_URL,
+        "endpoints": endpoints
+    })
+
+
+# ==================================================
+# STUDENT API
 # GET /api/students
 # POST /api/students
 # ==================================================
 
 @app.route("/api/students", methods=["GET", "POST"])
 def students_api():
-
-    # READ: return all local records as JSON.
     if request.method == "GET":
         conn = get_db_connection()
-
-        students = conn.execute("""
+        rows = conn.execute("""
             SELECT id, student_id, name, program, year, section, source
             FROM students
             ORDER BY id
         """).fetchall()
-
         conn.close()
 
-        return jsonify([dict(student) for student in students])
+        return jsonify({
+            "count": len(rows),
+            "students": [dict(row) for row in rows]
+        }), 200
 
-    # CREATE: receive a record from a client or partner.
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
         return jsonify({
-            "error": "Please send a JSON student record."
+            "error": "Request body must contain valid JSON."
         }), 400
 
-    required = [
+    required_fields = [
         "student_id", "name", "program", "year", "section"
     ]
 
-    if any(
-        field not in data or str(data[field]).strip() == ""
-        for field in required
-    ):
+    missing = [
+        field for field in required_fields
+        if field not in data
+        or data[field] is None
+        or str(data[field]).strip() == ""
+    ]
+
+    if missing:
         return jsonify({
-            "error": "All student fields are required."
+            "error": "Missing required fields.",
+            "missing_fields": missing
         }), 400
 
     try:
         year = int(data["year"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "Year must be a number."}), 400
 
-        if year < 1 or year > 6:
-            return jsonify({
-                "error": "Year must be between 1 and 6."
-            }), 400
+    if year < 1 or year > 6:
+        return jsonify({
+            "error": "Year must be between 1 and 6."
+        }), 400
 
-        source = str(data.get("source", "External API")).strip()
+    student = {
+        "student_id": str(data["student_id"]).strip(),
+        "name": str(data["name"]).strip(),
+        "program": str(data["program"]).strip(),
+        "year": year,
+        "section": str(data["section"]).strip().upper(),
+        "source": "External API"
+    }
 
-        if not source:
-            source = "External API"
+    conn = get_db_connection()
 
-        conn = get_db_connection()
-
-        conn.execute("""
+    try:
+        cursor = conn.execute("""
             INSERT INTO students
             (student_id, name, program, year, section, source)
             VALUES (?, ?, ?, ?, ?, ?)
         """, (
-            str(data["student_id"]).strip(),
-            str(data["name"]).strip(),
-            str(data["program"]).strip(),
-            year,
-            str(data["section"]).strip().upper(),
-            source
+            student["student_id"],
+            student["name"],
+            student["program"],
+            student["year"],
+            student["section"],
+            student["source"]
         ))
 
         conn.commit()
-        conn.close()
+        student["id"] = cursor.lastrowid
 
         return jsonify({
-            "message": "Student record created successfully.",
-            "student_id": data["student_id"],
-            "source": source
+            "message": "Student created successfully.",
+            "student": student
         }), 201
 
     except sqlite3.IntegrityError:
-        conn.close()
         return jsonify({
-            "error": "This student ID already exists."
+            "error": "Student ID already exists."
         }), 409
 
-    except (ValueError, TypeError):
-        return jsonify({
-            "error": "Invalid year value."
-        }), 400
+    finally:
+        conn.close()
 
 
 # ==================================================
-# CREATE: HTML ADD FORM
+# VIEW ALL STUDENTS
+# ==================================================
+
+@app.route("/students")
+def view_students():
+    conn = get_db_connection()
+    rows = conn.execute("""
+        SELECT * FROM students ORDER BY id
+    """).fetchall()
+    conn.close()
+
+    return render_template_string("""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Student Records</title>
+        {{ style|safe }}
+    </head>
+    <body>
+        <div class="container">
+            <h1>Student Records</h1>
+            <a class="button" href="/">Home</a>
+            <a class="button" href="/students/add">Add Student</a>
+            <a class="button" href="/integration">Integration Dashboard</a>
+
+            {% if rows %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Program</th>
+                        <th>Year</th>
+                        <th>Section</th>
+                        <th>Source</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in rows %}
+                    <tr>
+                        <td>{{ row["id"] }}</td>
+                        <td>{{ row["student_id"] }}</td>
+                        <td>{{ row["name"] }}</td>
+                        <td>{{ row["program"] }}</td>
+                        <td>{{ row["year"] }}</td>
+                        <td>{{ row["section"] }}</td>
+                        <td>{{ row["source"] }}</td>
+                        <td>
+                            <a class="button"
+                               href="/students/edit/{{ row['id'] }}">
+                               Edit
+                            </a>
+                            <form method="POST"
+                                  action="/students/delete/{{ row['id'] }}"
+                                  onsubmit="return confirm('Delete this record?');">
+                                <button class="button danger" type="submit">
+                                    Delete
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <p>No student records found.</p>
+            {% endif %}
+        </div>
+    </body>
+    </html>
+    """, style=STYLE, rows=rows)
+
+
+# ==================================================
+# ADD STUDENT FORM
 # ==================================================
 
 @app.route("/students/add", methods=["GET", "POST"])
@@ -443,343 +528,236 @@ def add_student():
         year_text = request.form.get("year", "").strip()
         section = request.form.get("section", "").strip().upper()
 
-        if not all([student_id, name, program, year_text, section]):
-            error = "Please complete all fields."
-        else:
+        try:
+            year = int(year_text)
+            if year < 1 or year > 6:
+                raise ValueError
+        except ValueError:
+            error = "Year must be a number between 1 and 6."
+
+        if not all([student_id, name, program, section]):
+            error = "Please complete all required fields."
+
+        if not error:
+            conn = get_db_connection()
+
             try:
-                year = int(year_text)
+                conn.execute("""
+                    INSERT INTO students
+                    (student_id, name, program, year, section, source)
+                    VALUES (?, ?, ?, ?, ?, 'Local')
+                """, (student_id, name, program, year, section))
 
-                if year < 1 or year > 6:
-                    error = "Year must be between 1 and 6."
-                else:
-                    conn = get_db_connection()
-
-                    conn.execute("""
-                        INSERT INTO students
-                        (student_id, name, program, year, section, source)
-                        VALUES (?, ?, ?, ?, ?, 'Local')
-                    """, (
-                        student_id, name, program, year, section
-                    ))
-
-                    conn.commit()
-                    conn.close()
-
-                    return redirect(url_for("student_table"))
+                conn.commit()
+                conn.close()
+                return redirect(url_for("view_students"))
 
             except sqlite3.IntegrityError:
-                error = "That student ID already exists."
-            except ValueError:
-                error = "Year must be a valid number."
+                error = "That Student ID already exists."
+                conn.close()
 
     return render_template_string("""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Add Student</title>
-        {{ style | safe }}
+        {{ style|safe }}
     </head>
     <body>
-        <header><h1>Add Student</h1></header>
-        <main class="container">
-            <section class="card">
-                <h2>Student Information</h2>
-                {% if error %}
-                    <p style="color:#dc2626">{{ error }}</p>
-                {% endif %}
+        <div class="container">
+            <h1>Add Student</h1>
+            <a class="button secondary" href="/">Home</a>
+            <a class="button secondary" href="/students">Back to Students</a>
 
-                <form method="POST">
-                    <label>Student ID</label>
-                    <input name="student_id" required>
+            {% if error %}
+            <div class="message">{{ error }}</div>
+            {% endif %}
 
-                    <label>Full Name</label>
-                    <input name="name" required>
+            <form method="POST">
+                <label>Student ID</label>
+                <input name="student_id" required>
 
-                    <label>Program</label>
-                    <input name="program" value="BSIT" required>
+                <label>Full Name</label>
+                <input name="name" required>
 
-                    <label>Year</label>
-                    <input name="year" type="number"
-                           min="1" max="6" required>
+                <label>Program</label>
+                <input name="program" placeholder="BSIT" required>
 
-                    <label>Section</label>
-                    <input name="section" required>
+                <label>Year</label>
+                <input type="number" name="year" min="1" max="6" required>
 
-                    <button class="green" type="submit">
-                        Save Student
-                    </button>
-                    <a class="button" href="/students">Cancel</a>
-                </form>
-            </section>
-        </main>
+                <label>Section</label>
+                <input name="section" required>
+
+                <button class="button success" type="submit">
+                    Save Student
+                </button>
+            </form>
+        </div>
     </body>
     </html>
     """, style=STYLE, error=error)
 
 
 # ==================================================
-# READ: HTML TABLE WITH SOURCE
+# EDIT STUDENT
 # ==================================================
 
-@app.route("/students")
-def student_table():
-    conn = get_db_connection()
-
-    students = conn.execute("""
-        SELECT id, student_id, name, program, year, section, source
-        FROM students
-        ORDER BY id
-    """).fetchall()
-
-    conn.close()
-
-    return render_template_string("""
-    <!DOCTYPE html>
-    <html lang="en">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>My Student Records</title>
-        {{ style | safe }}
-    </head>
-    <body>
-        <header>
-            <h1>My Student Records</h1>
-            <p>Local and imported database records</p>
-        </header>
-
-        <main class="container">
-            <section class="card">
-                <a class="button green" href="/students/add">Add Student</a>
-                <a class="button" href="/api/students">View JSON</a>
-                <a class="button orange" href="/integration">
-                    Integration Dashboard
-                </a>
-                <a class="button" href="/">Home</a>
-
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>ID</th>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Program</th>
-                                <th>Year</th>
-                                <th>Section</th>
-                                <th>Source</th>
-                                <th>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        {% for s in students %}
-                            <tr>
-                                <td>{{ s['id'] }}</td>
-                                <td>{{ s['student_id'] }}</td>
-                                <td>{{ s['name'] }}</td>
-                                <td>{{ s['program'] }}</td>
-                                <td>{{ s['year'] }}</td>
-                                <td>{{ s['section'] }}</td>
-                                <td>{{ s['source'] }}</td>
-                                <td>
-                                    <a class="button orange"
-                                       href="/students/edit/{{ s['id'] }}">
-                                       Edit
-                                    </a>
-
-                                    <form method="POST"
-                                          action="/students/delete/{{ s['id'] }}"
-                                          style="display:inline"
-                                          onsubmit="return confirm(
-                                            'Delete this record?'
-                                          )">
-                                        <button class="red" type="submit">
-                                            Delete
-                                        </button>
-                                    </form>
-                                </td>
-                            </tr>
-                        {% else %}
-                            <tr>
-                                <td colspan="8">No records found.</td>
-                            </tr>
-                        {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-        </main>
-    </body>
-    </html>
-    """, style=STYLE, students=students)
-
-
-# ==================================================
-# UPDATE: EDIT STUDENT
-# ==================================================
-
-@app.route("/students/edit/<int:student_id>",
-           methods=["GET", "POST"])
+@app.route("/students/edit/<int:student_id>", methods=["GET", "POST"])
 def edit_student(student_id):
     conn = get_db_connection()
-
     student = conn.execute(
-        "SELECT * FROM students WHERE id = ?",
-        (student_id,)
+        "SELECT * FROM students WHERE id = ?", (student_id,)
     ).fetchone()
 
-    conn.close()
-
     if student is None:
-        return "Student not found.", 404
+        conn.close()
+        return jsonify({"error": "Student not found."}), 404
 
     error = None
 
     if request.method == "POST":
-        new_id = request.form.get("student_id", "").strip()
+        new_student_id = request.form.get("student_id", "").strip()
         name = request.form.get("name", "").strip()
         program = request.form.get("program", "").strip()
         year_text = request.form.get("year", "").strip()
         section = request.form.get("section", "").strip().upper()
 
-        if not all([new_id, name, program, year_text, section]):
-            error = "Please complete all fields."
-        else:
+        try:
+            year = int(year_text)
+            if year < 1 or year > 6:
+                raise ValueError
+        except ValueError:
+            error = "Year must be a number between 1 and 6."
+
+        if not all([new_student_id, name, program, section]):
+            error = "Please complete all required fields."
+
+        if not error:
             try:
-                year = int(year_text)
+                conn.execute("""
+                    UPDATE students
+                    SET student_id = ?, name = ?, program = ?,
+                        year = ?, section = ?
+                    WHERE id = ?
+                """, (
+                    new_student_id, name, program,
+                    year, section, student_id
+                ))
 
-                if year < 1 or year > 6:
-                    error = "Year must be between 1 and 6."
-                else:
-                    conn = get_db_connection()
-
-                    conn.execute("""
-                        UPDATE students
-                        SET student_id = ?, name = ?, program = ?,
-                            year = ?, section = ?
-                        WHERE id = ?
-                    """, (
-                        new_id, name, program, year, section, student_id
-                    ))
-
-                    conn.commit()
-                    conn.close()
-
-                    return redirect(url_for("student_table"))
+                conn.commit()
+                conn.close()
+                return redirect(url_for("view_students"))
 
             except sqlite3.IntegrityError:
-                error = "That student ID already exists."
-            except ValueError:
-                error = "Year must be a valid number."
+                error = "That Student ID is already being used."
+
+        student = {
+            "id": student_id,
+            "student_id": new_student_id,
+            "name": name,
+            "program": program,
+            "year": year_text,
+            "section": section,
+            "source": student["source"]
+        }
+
+    conn.close()
 
     return render_template_string("""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>Edit Student</title>
-        {{ style | safe }}
+        {{ style|safe }}
     </head>
     <body>
-        <header><h1>Update Student Record</h1></header>
-        <main class="container">
-            <section class="card">
-                {% if error %}
-                    <p style="color:#dc2626">{{ error }}</p>
-                {% endif %}
+        <div class="container">
+            <h1>Edit Student</h1>
+            <a class="button secondary" href="/students">Back to Students</a>
 
-                <form method="POST">
-                    <label>Student ID</label>
-                    <input name="student_id"
-                           value="{{ request.form.get(
-                               'student_id', student['student_id']
-                           ) }}" required>
+            {% if error %}
+            <div class="message">{{ error }}</div>
+            {% endif %}
 
-                    <label>Full Name</label>
-                    <input name="name"
-                           value="{{ request.form.get(
-                               'name', student['name']
-                           ) }}" required>
+            <form method="POST">
+                <label>Student ID</label>
+                <input name="student_id"
+                       value="{{ student['student_id'] }}" required>
 
-                    <label>Program</label>
-                    <input name="program"
-                           value="{{ request.form.get(
-                               'program', student['program']
-                           ) }}" required>
+                <label>Full Name</label>
+                <input name="name" value="{{ student['name'] }}" required>
 
-                    <label>Year</label>
-                    <input name="year" type="number" min="1" max="6"
-                           value="{{ request.form.get(
-                               'year', student['year']
-                           ) }}" required>
+                <label>Program</label>
+                <input name="program"
+                       value="{{ student['program'] }}" required>
 
-                    <label>Section</label>
-                    <input name="section"
-                           value="{{ request.form.get(
-                               'section', student['section']
-                           ) }}" required>
+                <label>Year</label>
+                <input type="number" name="year" min="1" max="6"
+                       value="{{ student['year'] }}" required>
 
-                    <button class="green" type="submit">
-                        Update Student
-                    </button>
-                    <a class="button" href="/students">Cancel</a>
-                </form>
-            </section>
-        </main>
+                <label>Section</label>
+                <input name="section"
+                       value="{{ student['section'] }}" required>
+
+                <button class="button success" type="submit">
+                    Update Student
+                </button>
+            </form>
+        </div>
     </body>
     </html>
     """, style=STYLE, student=student, error=error)
 
 
 # ==================================================
-# DELETE: REMOVE STUDENT
+# DELETE STUDENT
 # ==================================================
 
 @app.route("/students/delete/<int:student_id>", methods=["POST"])
 def delete_student(student_id):
     conn = get_db_connection()
-
-    conn.execute(
-        "DELETE FROM students WHERE id = ?",
-        (student_id,)
-    )
-
+    conn.execute("DELETE FROM students WHERE id = ?", (student_id,))
     conn.commit()
     conn.close()
 
-    return redirect(url_for("student_table"))
+    return redirect(url_for("view_students"))
 
 
 # ==================================================
-# RETRIEVE CLASSMATE RECORDS
+# FETCH RECORDS FROM CLASSMATE API
+# GET /partner-records
 # ==================================================
 
-@app.route("/partner-records")
+@app.route("/partner-records", methods=["GET"])
 def partner_records():
     try:
-        response = requests.get(PARTNER_API_URL, timeout=15)
+        response = requests.get(PARTNER_API_URL, timeout=30)
         response.raise_for_status()
+        partner_data = response.json()
 
-        records = response.json()
-
-        if not isinstance(records, list):
-            return jsonify({
-                "error": "Partner API did not return a list."
-            }), 502
-
-        return jsonify(records)
-
-    except (requests.RequestException, ValueError):
         return jsonify({
-            "error": "Unable to retrieve partner data. Check the partner URL and API."
+            "message": "Partner API data retrieved successfully.",
+            "partner_api": PARTNER_API_URL,
+            "partner_data": partner_data
+        }), 200
+
+    except requests.RequestException as error:
+        return jsonify({
+            "error": "Unable to connect to the classmate API.",
+            "details": str(error),
+            "partner_api": PARTNER_API_URL
+        }), 502
+
+    except ValueError:
+        return jsonify({
+            "error": "The partner API did not return valid JSON."
         }), 502
 
 
 # ==================================================
-# IMPORT A SELECTED CLASSMATE RECORD
+# IMPORT ONE PARTNER RECORD INTO LOCAL DATABASE
+# POST /import-student
 # ==================================================
 
 @app.route("/import-student", methods=["POST"])
@@ -787,55 +765,68 @@ def import_student():
     data = request.get_json(silent=True)
 
     if not isinstance(data, dict):
-        return jsonify({"error": "A JSON record is required."}), 400
+        return jsonify({
+            "error": "A student record in JSON format is required."
+        }), 400
 
-    required = [
+    required_fields = [
         "student_id", "name", "program", "year", "section"
     ]
 
-    if any(
-        field not in data or str(data[field]).strip() == ""
-        for field in required
-    ):
-        return jsonify({"error": "Missing required student fields."}), 400
+    missing = [
+        field for field in required_fields
+        if field not in data
+        or data[field] is None
+        or str(data[field]).strip() == ""
+    ]
+
+    if missing:
+        return jsonify({
+            "error": "The partner record is missing required fields.",
+            "missing_fields": missing
+        }), 400
 
     try:
         year = int(data["year"])
+    except (ValueError, TypeError):
+        return jsonify({"error": "Year must be a number."}), 400
 
-        if year < 1 or year > 6:
-            return jsonify({"error": "Year must be between 1 and 6."}), 400
+    if year < 1 or year > 6:
+        return jsonify({
+            "error": "Year must be between 1 and 6."
+        }), 400
 
-        conn = get_db_connection()
+    conn = get_db_connection()
 
-        conn.execute("""
+    try:
+        cursor = conn.execute("""
             INSERT INTO students
             (student_id, name, program, year, section, source)
-            VALUES (?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, 'Classmate API')
         """, (
             str(data["student_id"]).strip(),
             str(data["name"]).strip(),
             str(data["program"]).strip(),
             year,
-            str(data["section"]).strip().upper(),
-            "Classmate API"
+            str(data["section"]).strip().upper()
         ))
 
         conn.commit()
-        conn.close()
 
         return jsonify({
-            "message": "Remote record saved successfully.",
+            "message": "Partner student imported successfully.",
+            "local_record_id": cursor.lastrowid,
+            "student_id": str(data["student_id"]).strip(),
             "source": "Classmate API"
         }), 201
 
     except sqlite3.IntegrityError:
-        conn.close()
         return jsonify({
-            "error": "This student ID already exists in your database."
+            "error": "This Student ID already exists in your database."
         }), 409
 
-    except (ValueError, TypeError):
-        return jsonify({"error": "Invalid year value."}), 400
+    finally:
+        conn.close()
 
 
 # ==================================================
@@ -844,185 +835,173 @@ def import_student():
 
 @app.route("/integration")
 def integration_dashboard():
+    try:
+        response = requests.get(PARTNER_API_URL, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+
+        # Accept either a JSON list or common dictionary formats.
+        if isinstance(data, list):
+            records = data
+        elif isinstance(data, dict):
+            records = data.get(
+                "students",
+                data.get("data", data.get("records", []))
+            )
+        else:
+            records = []
+
+        if not isinstance(records, list):
+            records = []
+
+        # Convert records to a consistent format for the page.
+        normalized_records = []
+
+        for record in records:
+            if not isinstance(record, dict):
+                continue
+
+            normalized_records.append({
+                "student_id": record.get(
+                    "student_id", record.get("id_number", record.get("id", ""))
+                ),
+                "name": record.get(
+                    "name",
+                    " ".join(filter(None, [
+                        record.get("first_name", ""),
+                        record.get("middle_name", ""),
+                        record.get("last_name", "")
+                    ])).strip()
+                ),
+                "program": record.get(
+                    "program", record.get("course", "")
+                ),
+                "year": record.get("year", 1),
+                "section": record.get("section", "A")
+            })
+
+        error = None
+
+    except (requests.RequestException, ValueError) as exc:
+        normalized_records = []
+        error = str(exc)
+
     return render_template_string("""
     <!DOCTYPE html>
-    <html lang="en">
+    <html>
     <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Integration Dashboard</title>
-        {{ style | safe }}
+        <title>System Integration</title>
+        {{ style|safe }}
     </head>
     <body>
-        <header>
-            <h1>Integration Dashboard</h1>
-            <p>View, save, send, and retrieve student records</p>
-        </header>
+        <div class="container">
+            <h1>System-to-System Integration</h1>
+            <p>View records from your classmate's API and import a selected
+               record into your local SQLite database.</p>
 
-        <main class="container">
-            <section class="card">
-                <h2>My Local Records and Imported Records</h2>
-                <p>View saved records and check their source.</p>
-                <a class="button green" href="/students">My Records</a>
-                <a class="button" href="/api/students">My JSON API</a>
-            </section>
+            <a class="button secondary" href="/">Home</a>
+            <a class="button" href="/students">My Student Records</a>
+            <a class="button" href="/partner-records">Partner JSON</a>
 
-            <section class="card">
-                <h2>Partner Records</h2>
-                <button onclick="loadPartnerRecords()">
-                    Retrieve Partner Records
-                </button>
-                <p id="message" role="status"></p>
+            {% if error %}
+            <div class="message">
+                Could not retrieve partner records: {{ error }}
+                <p>Check that the partner API URL is correct and that the
+                   classmate's service is running.</p>
+            </div>
+            {% elif records %}
+            <h2>Partner Records</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Student ID</th>
+                        <th>Name</th>
+                        <th>Program</th>
+                        <th>Year</th>
+                        <th>Section</th>
+                        <th>Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for record in records %}
+                    <tr>
+                        <td>{{ record["student_id"] }}</td>
+                        <td>{{ record["name"] }}</td>
+                        <td>{{ record["program"] }}</td>
+                        <td>{{ record["year"] }}</td>
+                        <td>{{ record["section"] }}</td>
+                        <td>
+                            <button class="button"
+                                type="button"
+                                onclick='selectRecord({{ record|tojson }})'>
+                                View / Select
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
 
-                <div class="table-wrapper">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Program</th>
-                                <th>Year</th>
-                                <th>Section</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="partnerTable">
-                            <tr>
-                                <td colspan="6">
-                                    Click Retrieve Partner Records.
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
-
-            <section class="card">
+            <div class="card">
                 <h2>Selected Partner Record</h2>
-                <p>Review the record before saving it locally.</p>
-                <pre id="selectedRecord">No record selected.</pre>
-                <button class="green" id="saveButton"
-                        onclick="saveSelectedRecord()" disabled>
+                <pre id="selectedRecord">Select a record from the table.</pre>
+                <button class="button success" id="saveButton"
+                        type="button" disabled onclick="saveRecord()">
                     Save to My Database
                 </button>
-            </section>
-
-            <section class="card">
-                <h2>Send a Practice Record</h2>
-                <p>
-                    To send a record, use the send_to_partner.py script
-                    after coordinating with your classmate.
-                </p>
-                <a class="button" href="/api/students">Open My API</a>
-            </section>
-
-            <a class="button" href="/">Back to Home</a>
-        </main>
+                <p id="result"></p>
+            </div>
+            {% else %}
+            <div class="message">
+                The partner API returned no records, or its JSON response
+                did not contain a supported student list.
+            </div>
+            {% endif %}
+        </div>
 
         <script>
-            let partnerRecords = [];
             let selectedStudent = null;
 
-            async function loadPartnerRecords() {
-                const message = document.getElementById("message");
-                const table = document.getElementById("partnerTable");
-
-                message.textContent = "Loading partner records...";
-
-                try {
-                    const response = await fetch("/partner-records");
-                    const data = await response.json();
-
-                    if (!response.ok) {
-                        throw new Error(data.error || "Request failed.");
-                    }
-
-                    if (!Array.isArray(data)) {
-                        throw new Error("Invalid partner response.");
-                    }
-
-                    partnerRecords = data;
-                    selectedStudent = null;
-                    document.getElementById("selectedRecord").textContent =
-                        "No record selected.";
-                    document.getElementById("saveButton").disabled = true;
-                    table.replaceChildren();
-
-                    if (data.length === 0) {
-                        table.innerHTML =
-                            '<tr><td colspan="6">No partner records found.</td></tr>';
-                    }
-
-                    data.forEach((student, index) => {
-                        const row = document.createElement("tr");
-
-                        [
-                            student.student_id,
-                            student.name,
-                            student.program,
-                            student.year,
-                            student.section
-                        ].forEach(value => {
-                            const cell = document.createElement("td");
-                            cell.textContent = value ?? "";
-                            row.appendChild(cell);
-                        });
-
-                        const actionCell = document.createElement("td");
-                        const viewButton = document.createElement("button");
-                        viewButton.textContent = "View";
-                        viewButton.onclick = () => selectRecord(index);
-                        actionCell.appendChild(viewButton);
-                        row.appendChild(actionCell);
-                        table.appendChild(row);
-                    });
-
-                    message.textContent =
-                        "Retrieved " + data.length + " partner record(s).";
-
-                } catch (error) {
-                    message.textContent = "Error: " + error.message;
-                }
-            }
-
-            function selectRecord(index) {
-                selectedStudent = partnerRecords[index];
-
+            function selectRecord(record) {
+                selectedStudent = record;
                 document.getElementById("selectedRecord").textContent =
-                    JSON.stringify(selectedStudent, null, 2);
+                    JSON.stringify(record, null, 2);
 
                 document.getElementById("saveButton").disabled = false;
-                document.getElementById("message").textContent =
-                    "Review the selected record before saving.";
+                document.getElementById("result").textContent = "";
             }
 
-            async function saveSelectedRecord() {
-                if (!selectedStudent) return;
+            async function saveRecord() {
+                if (!selectedStudent) {
+                    return;
+                }
 
+                const result = document.getElementById("result");
                 const button = document.getElementById("saveButton");
-                const message = document.getElementById("message");
 
                 button.disabled = true;
-                message.textContent = "Saving record...";
+                result.textContent = "Saving record...";
 
                 try {
                     const response = await fetch("/import-student", {
                         method: "POST",
-                        headers: {"Content-Type": "application/json"},
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
                         body: JSON.stringify(selectedStudent)
                     });
 
-                    const result = await response.json();
+                    const data = await response.json();
 
                     if (!response.ok) {
-                        throw new Error(result.error || "Save failed.");
+                        result.textContent =
+                            data.error || "Could not save the record.";
+                    } else {
+                        result.textContent =
+                            data.message + " Source: " + data.source + ".";
                     }
-
-                    message.textContent =
-                        result.message + " Source: " + result.source + ".";
-
                 } catch (error) {
-                    message.textContent = "Error: " + error.message;
+                    result.textContent = "Request failed: " + error.message;
                 } finally {
                     button.disabled = false;
                 }
@@ -1030,16 +1009,16 @@ def integration_dashboard():
         </script>
     </body>
     </html>
-    """, style=STYLE)
+    """, style=STYLE, records=normalized_records, error=error)
 
 
 # ==================================================
 # START APPLICATION
 # ==================================================
 
-if __name__ == "__main__":
-    initialize_database()
+initialize_database()
 
+if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(os.environ.get("PORT", 5000)),
