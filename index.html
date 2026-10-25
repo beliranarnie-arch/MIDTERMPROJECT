@@ -1,219 +1,409 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Jose Rizal: Interactive Learning & Assessment</title>
+    <title>Student CRUD Management System</title>
+
     <style>
-        :root {
-            --primary: #2c3e50;
-            --accent: #d4af37;
-            --success: #27ae60;
-            --error: #c0392b;
-            --light: #fdfaf0;
-        }
-
         body {
-            background-color: #d1d8e0;
-            font-family: 'Segoe UI', sans-serif;
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
             margin: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        header {
-            background: var(--primary);
-            color: white;
-            width: 100%;
-            padding: 20px 0;
-            text-align: center;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
-        }
-
-        .module-container {
-            max-width: 800px;
-            width: 95%;
-            background: var(--light);
-            margin: 30px 0;
-            padding: 40px;
-            border-radius: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-
-        #lesson-img {
-            width: 100%;
-            max-height: 350px;
-            object-fit: cover;
-            border-radius: 10px;
-            margin: 20px 0;
-        }
-
-        /* Assessment Styling */
-        .assessment-box {
-            background: #f9f9f9;
-            border: 2px dashed #ccc;
             padding: 20px;
-            margin-top: 30px;
-            border-radius: 10px;
         }
 
-        .option-btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 8px 0;
-            border: 1px solid #ddd;
+        .container {
+            max-width: 1100px;
+            margin: auto;
+        }
+
+        h1, h2 {
+            color: #164e9b;
+        }
+
+        .card {
             background: white;
-            border-radius: 5px;
-            cursor: pointer;
-            text-align: left;
-            font-size: 1rem;
-            transition: 0.2s;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px #00000012;
         }
 
-        .option-btn:hover { background: #f0f0f0; }
-        .option-btn.correct { background: var(--success); color: white; border-color: var(--success); }
-        .option-btn.wrong { background: var(--error); color: white; border-color: var(--error); }
-
-        .controls {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 30px;
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
         }
 
-        button.nav-btn {
-            padding: 12px 30px;
+        input, select, button {
+            padding: 10px;
             border-radius: 5px;
+            border: 1px solid #cbd5e1;
+            box-sizing: border-box;
+            width: 100%;
+        }
+
+        button {
             border: none;
-            font-weight: bold;
+            color: white;
+            background: #164e9b;
             cursor: pointer;
-            background: var(--primary);
+            margin-top: 8px;
+        }
+
+        button:hover {
+            opacity: 0.85;
+        }
+
+        .edit {
+            background: #d97706;
+        }
+
+        .delete {
+            background: #dc2626;
+        }
+
+        .cancel {
+            background: #64748b;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 12px;
+        }
+
+        th, td {
+            padding: 10px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        th {
+            background: #164e9b;
             color: white;
         }
 
-        button:disabled { opacity: 0.3; cursor: not-allowed; }
-        
-        #feedback { font-weight: bold; margin-top: 10px; }
+        .message {
+            margin: 12px 0;
+            font-weight: bold;
+        }
+
+        .actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .actions button {
+            min-width: 65px;
+        }
     </style>
 </head>
+
 <body>
+<div class="container">
+    <h1>Student CRUD Management System</h1>
+    <p>Create, view, update, and delete student records.</p>
 
-    <header>
-        <h2>Digital Learning Companion: Rizal Module</h2>
-        <p>Score: <span id="score">0</span></p>
-    </header>
+    <div class="card">
+        <h2 id="formTitle">Add Student</h2>
+        <div id="message" class="message"></div>
 
-    <div class="module-container">
-        <div id="lesson-view">
-            <h1 id="title">Loading...</h1>
-            <img id="lesson-img" src="" alt="Lesson Image">
-            <div id="body-text" style="line-height: 1.6;"></div>
+        <form id="studentForm">
+            <input type="hidden" id="recordId">
 
-            <div class="assessment-box">
-                <h3>🔍 Knowledge Check</h3>
-                <p id="question-text"></p>
-                <div id="options-container"></div>
-                <p id="feedback"></p>
+            <div class="form-grid">
+                <input id="student_id" placeholder="Student ID" required>
+                <input id="name" placeholder="Full Name" required>
+                <input id="program" placeholder="Program (e.g. BSIT)" required>
+
+                <select id="year" required>
+                    <option value="">Select Year</option>
+                    <option value="1">1st Year</option>
+                    <option value="2">2nd Year</option>
+                    <option value="3">3rd Year</option>
+                    <option value="4">4th Year</option>
+                    <option value="5">5th Year</option>
+                    <option value="6">6th Year</option>
+                </select>
+
+                <input id="section" placeholder="Section (e.g. A)" required>
             </div>
-        </div>
 
-        <div class="controls">
-            <button id="prevBtn" class="nav-btn" onclick="navigate(-1)">← Back</button>
-            <button id="nextBtn" class="nav-btn" onclick="navigate(1)" disabled>Lock: Answer Question to Proceed</button>
+            <button type="submit" id="saveButton">Save Student</button>
+            <button type="button" class="cancel"
+                    id="cancelButton" hidden onclick="resetForm()">
+                Cancel Update
+            </button>
+        </form>
+    </div>
+
+    <div class="card">
+        <h2>Student Records</h2>
+
+        <input id="search" placeholder="Search student..."
+               oninput="renderStudents()">
+
+        <button onclick="loadStudents()">Refresh Records</button>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>DB ID</th>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Program</th>
+                    <th>Year</th>
+                    <th>Section</th>
+                    <th>Actions</th>
+                </tr>
+                </thead>
+                <tbody id="studentTable">
+                </tbody>
+            </table>
         </div>
     </div>
 
-    <script>
-        const rizalData = [
-            {
-                title: "Chapter 1: Childhood in Calamba",
-                img: "https://upload.wikimedia.org/wikipedia/commons/b/b0/Jose_Rizal_full.jpg",
-                text: "Jose Rizal was born on June 19, 1861. His mother, Teodora Alonso, was his first teacher and taught him to read at age three. His family was wealthy and valued education highly.",
-                q: "Who was Jose Rizal's first teacher?",
-                options: ["His father Francisco", "His mother Teodora", "The village priest", "His brother Paciano"],
-                ans: 1
-            },
-            {
-                title: "Chapter 2: The Purpose of Education",
-                img: "https://upload.wikimedia.org/wikipedia/commons/5/53/Jose_rizal_01.jpg",
-                text: "Rizal studied Ophthalmology in Europe because he wanted to cure his mother's failing eyesight. He believed that education was the key to liberating the Filipino people from ignorance.",
-                q: "Why did Rizal choose to study Ophthalmology (eye medicine)?",
-                options: ["To get rich in Spain", "To cure his mother's eyes", "Because he liked wearing glasses", "To become a famous writer"],
-                ans: 1
-            },
-            {
-                title: "Chapter 3: The Dangerous Novels",
-                img: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d3/Noli_Me_Tangere_Manuscript_Cover.jpg/800px-Noli_Me_Tangere_Manuscript_Cover.jpg",
-                text: "Rizal wrote 'Noli Me Tangere' to expose the corruption and abuses of the Spanish friars and government officials in the Philippines. This made him a target of the Spanish authorities.",
-                q: "What was the main purpose of Rizal's novels?",
-                options: ["To teach Spanish grammar", "To tell a love story only", "To expose social corruption and abuse", "To promote Spanish rule"],
-                ans: 2
+    <div class="card">
+        <h2>Classmate's Student Records (Read Only)</h2>
+        <button onclick="loadClassmateStudents()">
+            Load Classmate Records
+        </button>
+
+        <div class="table-wrapper">
+            <table>
+                <thead>
+                <tr>
+                    <th>Student ID</th>
+                    <th>Name</th>
+                    <th>Program</th>
+                    <th>Year</th>
+                    <th>Section</th>
+                </tr>
+                </thead>
+                <tbody id="classmateTable"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+    const API = "/api/students";
+    let students = [];
+
+    function showMessage(message, isError = false) {
+        const element = document.getElementById("message");
+        element.textContent = message;
+        element.style.color = isError ? "#dc2626" : "#15803d";
+    }
+
+    async function apiRequest(url, method = "GET", data = null) {
+        const options = { method };
+
+        if (data !== null) {
+            options.headers = { "Content-Type": "application/json" };
+            options.body = JSON.stringify(data);
+        }
+
+        const response = await fetch(url, options);
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.error || "Request failed.");
+        }
+
+        return result;
+    }
+
+    function getFormData() {
+        return {
+            student_id: document.getElementById("student_id").value.trim(),
+            name: document.getElementById("name").value.trim(),
+            program: document.getElementById("program").value.trim(),
+            year: Number(document.getElementById("year").value),
+            section: document.getElementById("section").value.trim()
+        };
+    }
+
+    // CREATE and UPDATE
+    document.getElementById("studentForm").addEventListener(
+        "submit", async function(event) {
+            event.preventDefault();
+
+            const recordId = document.getElementById("recordId").value;
+            const method = recordId ? "PUT" : "POST";
+            const url = recordId ? `${API}/${recordId}` : API;
+
+            try {
+                const result = await apiRequest(url, method, getFormData());
+                showMessage(result.message);
+                resetForm();
+                await loadStudents();
+            } catch (error) {
+                showMessage(error.message, true);
             }
-        ];
+        }
+    );
 
-        let currentIdx = 0;
-        let totalScore = 0;
-        let answeredCorrectly = false;
+    // READ
+    async function loadStudents() {
+        try {
+            students = await apiRequest(API);
+            renderStudents();
+        } catch (error) {
+            showMessage("Unable to load students: " + error.message, true);
+        }
+    }
 
-        function render() {
-            const data = rizalData[currentIdx];
-            document.getElementById('title').innerText = data.title;
-            document.getElementById('lesson-img').src = data.img;
-            document.getElementById('body-text').innerHTML = `<p>${data.text}</p>`;
-            document.getElementById('question-text').innerText = data.q;
-            
-            const optionsDiv = document.getElementById('options-container');
-            optionsDiv.innerHTML = "";
-            answeredCorrectly = false;
-            document.getElementById('nextBtn').disabled = true;
-            document.getElementById('nextBtn').innerText = "Lock: Answer correctly to proceed";
-            document.getElementById('feedback').innerText = "";
+    function renderStudents() {
+        const search = document.getElementById("search").value.toLowerCase();
+        const table = document.getElementById("studentTable");
+        table.replaceChildren();
 
-            data.options.forEach((opt, i) => {
-                const btn = document.createElement('button');
-                btn.className = "option-btn";
-                btn.innerText = opt;
-                btn.onclick = () => checkAnswer(i, data.ans, btn);
-                optionsDiv.appendChild(btn);
+        const filtered = students.filter(student =>
+            [
+                student.student_id,
+                student.name,
+                student.program,
+                student.year,
+                student.section
+            ].some(value => String(value).toLowerCase().includes(search))
+        );
+
+        filtered.forEach(student => {
+            const row = document.createElement("tr");
+
+            [
+                student.id,
+                student.student_id,
+                student.name,
+                student.program,
+                student.year,
+                student.section
+            ].forEach(value => {
+                const cell = document.createElement("td");
+                cell.textContent = value;
+                row.appendChild(cell);
             });
 
-            document.getElementById('prevBtn').disabled = (currentIdx === 0);
+            const actions = document.createElement("td");
+            actions.className = "actions";
+
+            const editButton = document.createElement("button");
+            editButton.textContent = "Edit";
+            editButton.className = "edit";
+            editButton.onclick = () => editStudent(student.id);
+
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Delete";
+            deleteButton.className = "delete";
+            deleteButton.onclick = () => deleteStudent(student.id);
+
+            actions.append(editButton, deleteButton);
+            row.appendChild(actions);
+            table.appendChild(row);
+        });
+
+        if (filtered.length === 0) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 7;
+            cell.textContent = "No student records found.";
+            row.appendChild(cell);
+            table.appendChild(row);
         }
+    }
 
-        function checkAnswer(selected, correct, btn) {
-            if (answeredCorrectly) return; // Prevent multiple scoring
+    // Fill the form for UPDATE
+    function editStudent(id) {
+        const student = students.find(item => item.id === id);
+        if (!student) return;
 
-            const feedback = document.getElementById('feedback');
-            const allBtns = document.querySelectorAll('.option-btn');
+        document.getElementById("recordId").value = student.id;
+        document.getElementById("student_id").value = student.student_id;
+        document.getElementById("name").value = student.name;
+        document.getElementById("program").value = student.program;
+        document.getElementById("year").value = student.year;
+        document.getElementById("section").value = student.section;
 
-            if (selected === correct) {
-                btn.classList.add('correct');
-                feedback.innerText = "⭐ Correct! You may now proceed.";
-                feedback.style.color = "green";
-                totalScore += 10;
-                document.getElementById('score').innerText = totalScore;
-                answeredCorrectly = true;
-                document.getElementById('nextBtn').disabled = false;
-                document.getElementById('nextBtn').innerText = (currentIdx === rizalData.length - 1) ? "Finish Module ✔" : "Next Chapter →";
-            } else {
-                btn.classList.add('wrong');
-                feedback.innerText = "❌ That's not right. Review the text above and try again!";
-                feedback.style.color = "red";
+        document.getElementById("formTitle").textContent = "Update Student";
+        document.getElementById("saveButton").textContent = "Update Student";
+        document.getElementById("cancelButton").hidden = false;
+
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    function resetForm() {
+        document.getElementById("studentForm").reset();
+        document.getElementById("recordId").value = "";
+        document.getElementById("formTitle").textContent = "Add Student";
+        document.getElementById("saveButton").textContent = "Save Student";
+        document.getElementById("cancelButton").hidden = true;
+    }
+
+    // DELETE
+    async function deleteStudent(id) {
+        const student = students.find(item => item.id === id);
+        if (!student) return;
+
+        if (!confirm(`Delete ${student.name}?`)) return;
+
+        try {
+            const result = await apiRequest(`${API}/${id}`, "DELETE");
+            showMessage(result.message);
+            await loadStudents();
+        } catch (error) {
+            showMessage(error.message, true);
+        }
+    }
+
+    // READ CLASSMATE RECORDS ONLY
+    async function loadClassmateStudents() {
+        const table = document.getElementById("classmateTable");
+        table.replaceChildren();
+
+        try {
+            const records = await apiRequest("/api/classmate/students");
+
+            records.forEach(student => {
+                const row = document.createElement("tr");
+
+                [
+                    student.student_id ?? student.id ?? "",
+                    student.name ?? "",
+                    student.program ?? "",
+                    student.year ?? "",
+                    student.section ?? ""
+                ].forEach(value => {
+                    const cell = document.createElement("td");
+                    cell.textContent = value;
+                    row.appendChild(cell);
+                });
+
+                table.appendChild(row);
+            });
+
+            if (records.length === 0) {
+                table.innerHTML = "<tr><td colspan='5'>No classmate records found.</td></tr>";
             }
+        } catch (error) {
+            const row = document.createElement("tr");
+            const cell = document.createElement("td");
+            cell.colSpan = 5;
+            cell.textContent = "Unable to retrieve classmate records: " + error.message;
+            row.appendChild(cell);
+            table.appendChild(row);
         }
+    }
 
-        function navigate(dir) {
-            currentIdx += dir;
-            if (currentIdx >= rizalData.length) {
-                alert("Final Score: " + totalScore + "! You have mastered the Rizal introduction.");
-                currentIdx = rizalData.length - 1;
-                return;
-            }
-            render();
-        }
-
-        render();
-    </script>
+    loadStudents();
+</script>
 </body>
 </html>
