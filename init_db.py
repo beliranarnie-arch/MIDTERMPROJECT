@@ -4,7 +4,7 @@ import sqlite3
 DATABASE = "students.db"
 
 
-def init_db():
+def initialize_database():
     conn = sqlite3.connect(DATABASE)
 
     conn.execute("""
@@ -14,33 +14,51 @@ def init_db():
             name TEXT NOT NULL,
             program TEXT NOT NULL,
             year INTEGER NOT NULL,
-            section TEXT NOT NULL
+            section TEXT NOT NULL,
+            source TEXT DEFAULT 'Local'
         )
     """)
 
-    count = conn.execute(
-        "SELECT COUNT(*) FROM students"
-    ).fetchone()[0]
+    # Add the source column if the table is from an older activity.
+    columns = [
+        row[1]
+        for row in conn.execute(
+            "PRAGMA table_info(students)"
+        ).fetchall()
+    ]
 
-    if count == 0:
-        students = [
-            ("2026-00123", "Arnie Beliran", "BSIT", 3, "A"),
-            ("2026-00124", "Maria Santos", "BSIT", 1, "A"),
-            ("2026-00125", "Pedro Reyes", "BSIT", 2, "B"),
-            ("2026-00126", "Ana Cruz", "BSCS", 2, "B"),
-            ("2026-00127", "John Garcia", "BSIT", 4, "C")
-        ]
+    if "source" not in columns:
+        conn.execute("""
+            ALTER TABLE students
+            ADD COLUMN source TEXT DEFAULT 'Local'
+        """)
 
-        conn.executemany("""
-            INSERT INTO students
-            (student_id, name, program, year, section)
-            VALUES (?, ?, ?, ?, ?)
-        """, students)
+    # Label existing records without a source as Local.
+    conn.execute("""
+        UPDATE students
+        SET source = 'Local'
+        WHERE source IS NULL OR source = ''
+    """)
+
+    # Add Arnie's record only if the student ID is not already present.
+    conn.execute("""
+        INSERT OR IGNORE INTO students
+        (student_id, name, program, year, section, source)
+        VALUES (?, ?, ?, ?, ?, ?)
+    """, (
+        "2026-00123",
+        "Arnie Beliran",
+        "BSIT",
+        3,
+        "A",
+        "Local"
+    ))
 
     conn.commit()
     conn.close()
-    print("Database initialized successfully!")
+
+    print("Database initialized successfully.")
 
 
 if __name__ == "__main__":
-    init_db()
+    initialize_database()
