@@ -27,7 +27,7 @@ def close_db(exception):
         db.close()
 
 def init_db():
-    """Auto-creates the table and initial seed records if the database doesn't exist."""
+    """Auto-creates table and populates initial seed records if empty."""
     conn = sqlite3.connect(DATABASE)
     cursor = conn.cursor()
     cursor.execute('''
@@ -57,7 +57,7 @@ def init_db():
 init_db()
 
 # ---------------------------------------------------------
-# FRONTEND TEMPLATE (INLINE SINGLE-FILE SETUP)
+# FRONTEND TEMPLATE
 # ---------------------------------------------------------
 
 HTML_TEMPLATE = """
@@ -70,7 +70,9 @@ HTML_TEMPLATE = """
     <style>
         * { box-sizing: border-box; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif; }
         body { background-color: #f8fafc; color: #1e293b; margin: 0; padding: 24px; }
-        h1 { text-align: center; color: #0f172a; margin-bottom: 24px; }
+        h1 { text-align: center; color: #0f172a; margin-bottom: 6px; }
+        .sub-header { text-align: center; color: #64748b; margin-bottom: 24px; font-size: 14px; }
+        .api-badge { background: #e0e7ff; color: #3730a3; padding: 4px 10px; border-radius: 6px; font-family: monospace; font-size: 13px; font-weight: 600; }
         
         .container { display: flex; gap: 24px; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; }
         .card { flex: 1; min-width: 480px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
@@ -108,9 +110,12 @@ HTML_TEMPLATE = """
 <body>
 
     <h1>Laboratory Activity 8: CRUD & Distributed API System</h1>
+    <div class="sub-header">
+        My Public API Endpoint: <span class="api-badge">https://arnie-1.onrender.com/api/students</span>
+    </div>
 
     <div class="container">
-        <!-- MY RECORDS PANEL -->
+        <!-- MY LOCAL DB PANEL -->
         <div class="card">
             <div class="card-title">
                 <span>My Records (Local Database)</span>
@@ -151,7 +156,7 @@ HTML_TEMPLATE = """
             <div id="local-details" class="details-pane" style="display: none;"></div>
         </div>
 
-        <!-- CLASSMATE RECORDS PANEL -->
+        <!-- REMOTE CLASSMATE API PANEL -->
         <div class="card">
             <div class="card-title">
                 <span>Classmate's Records (Remote API)</span>
@@ -187,7 +192,7 @@ HTML_TEMPLATE = """
             loadClassmateData();
         });
 
-        // --- LOCAL CRUD FUNCTIONALITY ---
+        // --- LOCAL CRUD LOGIC ---
         function fetchLocalRecords() {
             fetch('/api/students')
                 .then(res => res.json())
