@@ -1,15 +1,37 @@
 
 import sqlite3
+from contextlib import contextmanager
 
 DATABASE = "students.db"
 
 
+# DATABASE CONNECTION
+@contextmanager
 def get_connection():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
-    return conn
+
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        conn.close()
 
 
+# VALIDATE YEAR LEVEL
+def validate_year(year_text):
+    year = int(year_text)
+
+    if year < 1 or year > 6:
+        raise ValueError("Year level must be from 1 to 6.")
+
+    return year
+
+
+# CREATE STUDENT
 def create_student():
     print("\n--- CREATE STUDENT ---")
 
@@ -24,10 +46,7 @@ def create_student():
         return
 
     try:
-        year = int(year_text)
-        if year < 1 or year > 6:
-            print("Error: Year level must be from 1 to 6.")
-            return
+        year = validate_year(year_text)
 
         with get_connection() as conn:
             conn.execute("""
@@ -38,14 +57,15 @@ def create_student():
 
         print("Student created successfully!")
 
-    except ValueError:
-        print("Error: Year level must be a number.")
+    except ValueError as error:
+        print("Error:", error)
     except sqlite3.IntegrityError:
         print("Error: Student ID already exists.")
     except sqlite3.Error as error:
         print("Database error:", error)
 
 
+# READ STUDENTS
 def read_students():
     print("\n--- STUDENT RECORDS ---")
 
@@ -83,6 +103,7 @@ def read_students():
         print("Database error:", error)
 
 
+# UPDATE STUDENT
 def update_student():
     print("\n--- UPDATE STUDENT ---")
 
@@ -121,31 +142,39 @@ def update_student():
                 f"Section [{student['section']}]: "
             ).strip().upper() or student["section"]
 
-            year = student["year"] if not year_text else int(year_text)
-
-            if year < 1 or year > 6:
-                print("Error: Year level must be from 1 to 6.")
-                return
+            year = (
+                validate_year(year_text)
+                if year_text else student["year"]
+            )
 
             conn.execute("""
                 UPDATE students
-                SET student_id = ?, name = ?, program = ?,
-                    year = ?, section = ?
+                SET student_id = ?,
+                    name = ?,
+                    program = ?,
+                    year = ?,
+                    section = ?
                 WHERE id = ?
             """, (
-                student_id, name, program, year, section, record_id
+                student_id,
+                name,
+                program,
+                year,
+                section,
+                record_id
             ))
 
         print("Student updated successfully!")
 
-    except ValueError:
-        print("Error: Enter a valid numeric ID and year.")
+    except ValueError as error:
+        print("Error:", error)
     except sqlite3.IntegrityError:
         print("Error: Student ID already exists.")
     except sqlite3.Error as error:
         print("Database error:", error)
 
 
+# DELETE STUDENT
 def delete_student():
     print("\n--- DELETE STUDENT ---")
 
@@ -163,7 +192,10 @@ def delete_student():
                 return
 
             print(f"Student: {student['name']}")
-            confirm = input("Are you sure you want to delete? (y/n): ")
+
+            confirm = input(
+                "Are you sure you want to delete? (y/n): "
+            )
 
             if confirm.strip().lower() != "y":
                 print("Deletion cancelled.")
@@ -182,10 +214,11 @@ def delete_student():
         print("Database error:", error)
 
 
+# MAIN MENU
 def main():
     while True:
         print("\n================================")
-        print(" STUDENT INFORMATION SYSTEM")
+        print("   STUDENT INFORMATION SYSTEM")
         print("================================")
         print("1. Create Student")
         print("2. Read Students")
@@ -197,15 +230,20 @@ def main():
 
         if choice == "1":
             create_student()
+
         elif choice == "2":
             read_students()
+
         elif choice == "3":
             update_student()
+
         elif choice == "4":
             delete_student()
+
         elif choice == "5":
             print("Thank you for using the system!")
             break
+
         else:
             print("Invalid choice. Please select 1-5.")
 

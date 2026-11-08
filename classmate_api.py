@@ -1,7 +1,6 @@
-
 import requests
 
-url = "https://jasminerose-2.onrender.com"
+url = "https://jasminerose-2.onrender.com/api/students"
 
 try:
     response = requests.get(url, timeout=60)
