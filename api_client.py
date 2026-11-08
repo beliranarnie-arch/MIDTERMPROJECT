@@ -3,7 +3,7 @@ import requests
 
 name = input("Enter your first name: ")
 
-url = "https://arnie-1.onrender.com/hello"
+url = "https://arnie-1.onrender.com"
 params = {"name": name}
 
 try:
