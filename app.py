@@ -74,7 +74,7 @@ HTML_TEMPLATE = """
         
         .container { display: flex; gap: 24px; flex-wrap: wrap; max-width: 1400px; margin: 0 auto; }
         .card { flex: 1; min-width: 480px; background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }
-        .card-title { font-size: 1.25rem; font-weight: 700; margin-top: 0; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #f1f5f9; display: flex; justify-space: between; align-items: center; }
+        .card-title { font-size: 1.25rem; font-weight: 700; margin-top: 0; margin-bottom: 16px; padding-bottom: 8px; border-bottom: 2px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
         
         .form-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px; }
         input[type="text"], input[type="url"] { padding: 10px 12px; border: 1px solid #cbd5e1; border-radius: 6px; font-size: 14px; width: 100%; }
@@ -159,7 +159,7 @@ HTML_TEMPLATE = """
             </div>
 
             <div class="form-group">
-                <input type="url" id="classmate-url" placeholder="https://CLASSMATE-APP.onrender.com/api/students">
+                <input type="url" id="classmate-url" value="https://jasminerose-2.onrender.com/api/students" placeholder="https://jasminerose-2.onrender.com/api/students">
                 <button type="button" onclick="loadClassmateData()" class="btn-fetch">Fetch Remote API</button>
             </div>
 
@@ -182,7 +182,10 @@ HTML_TEMPLATE = """
     <script>
         let localStudents = [];
 
-        document.addEventListener("DOMContentLoaded", fetchLocalRecords);
+        document.addEventListener("DOMContentLoaded", () => {
+            fetchLocalRecords();
+            loadClassmateData();
+        });
 
         // --- LOCAL CRUD FUNCTIONALITY ---
         function fetchLocalRecords() {
@@ -192,7 +195,7 @@ HTML_TEMPLATE = """
                     localStudents = data;
                     renderLocalTable(localStudents);
                 })
-                .catch(err => console.error("Error fetching records:", err));
+                .catch(err => console.error("Error fetching local records:", err));
         }
 
         function renderLocalTable(data) {
@@ -312,8 +315,13 @@ HTML_TEMPLATE = """
 
         // --- CLASSMATE REMOTE API INTEGRATION ---
         function loadClassmateData() {
-            const url = document.getElementById('classmate-url').value.trim();
+            let url = document.getElementById('classmate-url').value.trim();
             if (!url) return alert("Please specify your classmate's deployed API URL.");
+
+            if (!url.endsWith('/api/students')) {
+                url = url.replace(/\/+$/, '') + '/api/students';
+                document.getElementById('classmate-url').value = url;
+            }
 
             fetch(url)
                 .then(res => {
@@ -322,7 +330,6 @@ HTML_TEMPLATE = """
                 })
                 .then(data => renderRemoteTable(data))
                 .catch(() => {
-                    // Fallback proxy call to bypass CORS issues
                     fetch(`/api/proxy/classmate?url=${encodeURIComponent(url)}`)
                         .then(res => res.json())
                         .then(data => {
