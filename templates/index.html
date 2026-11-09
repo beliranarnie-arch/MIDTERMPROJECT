@@ -1,972 +1,278 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MIDTERMPROJECT - Student Information System</title>
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Laboratory Data Management System</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
         body {
+            background: #f3f6fa;
             font-family: Arial, sans-serif;
-            background: #f2f5f9;
-            color: #222;
-            margin: 0;
-            padding: 24px;
         }
 
-        header {
-            background: #174a8b;
+        .navbar {
+            background: #12345a;
+        }
+
+        .navbar-brand {
             color: white;
-            text-align: center;
-            padding: 25px;
-            border-radius: 12px;
-            margin-bottom: 20px;
-        }
-
-        main {
-            max-width: 1100px;
-            margin: auto;
-        }
-
-        .card {
-            background: white;
-            padding: 20px;
-            margin-bottom: 18px;
-            border-radius: 10px;
-            box-shadow: 0 2px 8px #00000012;
-        }
-
-        h2 {
-            margin-top: 0;
-            color: #174a8b;
-        }
-
-        input, select, button {
-            font: inherit;
-            padding: 10px;
-            margin: 5px 3px 5px 0;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
-
-        input, select {
-            max-width: 100%;
-        }
-
-        button {
-            background: #174a8b;
-            color: white;
-            border: none;
-            cursor: pointer;
-        }
-
-        button:hover {
-            background: #103765;
-        }
-
-        .edit-btn {
-            background: #e69b16;
-        }
-
-        .delete-btn {
-            background: #c0392b;
-        }
-
-        .details-btn {
-            background: #16845b;
-        }
-
-        .cancel-btn {
-            background: #666;
-        }
-
-        .student {
-            border: 1px solid #ddd;
-            padding: 14px;
-            margin: 10px 0;
-            border-radius: 7px;
-            overflow-wrap: anywhere;
-        }
-
-        .student strong {
-            color: #174a8b;
-        }
-
-        .message {
-            margin-top: 12px;
             font-weight: bold;
-            overflow-wrap: anywhere;
         }
 
-        .success {
-            color: green;
+        .dashboard-card {
+            border: none;
+            border-radius: 12px;
+            box-shadow: 0 3px 12px rgba(0,0,0,.06);
         }
 
-        .error {
-            color: #c0392b;
+        .main-title {
+            color: #12345a;
+            font-weight: bold;
         }
 
-        .result {
-            margin-top: 12px;
-            overflow-wrap: anywhere;
+        .table th {
+            background: #12345a;
+            color: white;
         }
 
-        .form-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 8px;
-        }
-
-        .form-grid input {
-            width: 100%;
-            margin: 0;
-        }
-
-        .form-buttons {
-            margin-top: 12px;
-        }
-
-        .student-actions {
-            margin-top: 10px;
-        }
-
-        .source-label {
-            display: inline-block;
-            background: #e5edf8;
-            color: #174a8b;
-            padding: 6px 10px;
-            border-radius: 5px;
-            font-size: 13px;
-            margin-bottom: 12px;
-        }
-
-        pre {
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            background: #f4f6f8;
-            padding: 12px;
-            border-radius: 6px;
-        }
-
-        footer {
-            text-align: center;
-            color: #666;
-            padding: 15px;
-        }
-
-        @media (max-width: 600px) {
-            body {
-                padding: 12px;
-            }
-
-            .form-grid {
-                grid-template-columns: 1fr;
-            }
-
-            button {
-                margin-bottom: 7px;
-            }
+        .btn-primary {
+            background: #12345a;
+            border-color: #12345a;
         }
     </style>
 </head>
 
 <body>
 
-<header>
-    <h1>MIDTERMPROJECT</h1>
-    <p>Flask API and SQLite Student Information System</p>
-    <p>Laboratory Activity 8 - CRUD and Classmate API</p>
-</header>
+<nav class="navbar navbar-expand-lg mb-4">
+    <div class="container">
+        <span class="navbar-brand">
+            🧪 Laboratory Management System
+        </span>
+    </div>
+</nav>
 
-<main>
+<div class="container pb-5">
 
-    <!-- STUDENT INFORMATION API -->
-    <section class="card">
-        <h2>Student Information API</h2>
+    <h2 class="main-title mb-4">
+        Laboratory Dashboard
+    </h2>
 
-        <button onclick="loadEndpoint('/student', 'apiResult')">
-            View Student Information
-        </button>
+    <!-- ALERT MESSAGES -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show">
+                {{ message }}
+                <button type="button" class="btn-close"
+                        data-bs-dismiss="alert"></button>
+            </div>
+        {% endfor %}
+    {% endwith %}
 
-        <div id="apiResult" class="result"></div>
-    </section>
+    <!-- TOTAL RECORDS -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card dashboard-card p-3">
+                <h6 class="text-muted">Total Laboratory Records</h6>
+                <h2 class="text-primary">{{ total_records }}</h2>
+            </div>
+        </div>
+    </div>
 
-    <!-- GREETING API -->
-    <section class="card">
-        <h2>Greeting API</h2>
+    <!-- SAVE DATA FORM -->
+    <div class="card dashboard-card mb-4">
+        <div class="card-header bg-primary text-white">
+            <strong>Save Laboratory Data</strong>
+        </div>
 
-        <input type="text" id="greetingName"
-               placeholder="Enter your name">
+        <div class="card-body">
 
-        <button onclick="loadGreeting()">Get Greeting</button>
+            <form action="{{ url_for('save_data') }}"
+                  method="POST">
 
-        <div id="greetingResult" class="result"></div>
-    </section>
+                <input type="hidden"
+                       name="csrf_token"
+                       value="{{ csrf_token() }}">
 
-    <!-- COURSE API -->
-    <section class="card">
-        <h2>Course API</h2>
+                <div class="row">
 
-        <button onclick="loadEndpoint('/course', 'courseResult')">
-            View Course
-        </button>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Sample Name *</label>
+                        <input type="text"
+                               name="sample_name"
+                               class="form-control"
+                               maxlength="150"
+                               required>
+                    </div>
 
-        <div id="courseResult" class="result"></div>
-    </section>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">Test Date *</label>
+                        <input type="date"
+                               name="test_date"
+                               class="form-control"
+                               value="{{ today }}"
+                               required>
+                    </div>
 
-    <!-- CREATE AND UPDATE STUDENT -->
-    <section class="card">
-        <h2 id="formTitle">Add New Student</h2>
+                    <div class="col-12 mb-3">
+                        <label class="form-label">
+                            Laboratory Result *
+                        </label>
 
-        <form id="studentForm">
+                        <textarea name="result"
+                                  class="form-control"
+                                  rows="3"
+                                  required></textarea>
+                    </div>
 
-            <div class="form-grid">
+                    <div class="col-12 mb-3">
+                        <label class="form-label">Notes</label>
 
-                <input type="text" id="studentId"
-                       placeholder="Student ID (2026-00128)" required>
+                        <textarea name="notes"
+                                  class="form-control"
+                                  rows="2"></textarea>
+                    </div>
 
-                <input type="text" id="studentName"
-                       placeholder="Full Name" required>
+                    <div class="col-12">
+                        <button class="btn btn-primary"
+                                type="submit">
+                            💾 Save Data
+                        </button>
+                    </div>
 
-                <input type="text" id="program"
-                       placeholder="Program (BSIT or BSCS)" required>
+                </div>
+            </form>
 
-                <input type="number" id="year"
-                       placeholder="Year Level (1-6)"
-                       min="1" max="6" required>
+        </div>
+    </div>
 
-                <input type="text" id="section"
-                       placeholder="Section (A, B, C)" required>
+    <!-- SEARCH AND EXPORT -->
+    <div class="card dashboard-card mb-4">
+        <div class="card-body">
+
+            <div class="row align-items-center">
+
+                <div class="col-md-8">
+                    <form action="/" method="GET"
+                          class="d-flex gap-2">
+
+                        <input type="text"
+                               name="search"
+                               class="form-control"
+                               placeholder="Search laboratory records..."
+                               value="{{ search }}">
+
+                        <button class="btn btn-primary">
+                            Search
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-md-4 mt-2 mt-md-0">
+                    <a href="{{ url_for('export_data') }}"
+                       class="btn btn-success w-100">
+                        📤 Send / Export CSV
+                    </a>
+                </div>
 
             </div>
+        </div>
+    </div>
 
-            <div class="form-buttons">
+    <!-- RETRIEVE DATA TABLE -->
+    <div class="card dashboard-card">
+        <div class="card-header bg-dark text-white">
+            <strong>Retrieve Laboratory Records</strong>
+        </div>
 
-                <button type="submit" id="saveButton">
-                    Add Student
-                </button>
+        <div class="card-body">
 
-                <button type="button" id="cancelButton"
-                        class="cancel-btn" hidden
-                        onclick="cancelEdit()">
-                    Cancel Edit
-                </button>
+            <div class="table-responsive">
+
+                <table class="table table-bordered table-hover">
+
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Sample Name</th>
+                            <th>Result</th>
+                            <th>Test Date</th>
+                            <th>Notes</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                    {% for record in records %}
+
+                        <tr>
+                            <td>{{ record.id }}</td>
+
+                            <td>{{ record.sample_name }}</td>
+
+                            <td>{{ record.result }}</td>
+
+                            <td>{{ record.test_date }}</td>
+
+                            <td>{{ record.notes or "-" }}</td>
+
+                            <td>
+                                <a href="{{ url_for('retrieve_data', record_id=record.id) }}"
+                                   target="_blank"
+                                   class="btn btn-info btn-sm">
+                                    View
+                                </a>
+
+                                <form action="{{ url_for('delete_data', record_id=record.id) }}"
+                                      method="POST"
+                                      class="d-inline"
+                                      onsubmit="return confirm('Delete this record?');">
+
+                                    <input type="hidden"
+                                           name="csrf_token"
+                                           value="{{ csrf_token() }}">
+
+                                    <button class="btn btn-danger btn-sm"
+                                            type="submit">
+                                        Delete
+                                    </button>
+
+                                </form>
+                            </td>
+                        </tr>
+
+                    {% else %}
+
+                        <tr>
+                            <td colspan="6"
+                                class="text-center text-muted">
+                                No laboratory records found.
+                            </td>
+                        </tr>
+
+                    {% endfor %}
+
+                    </tbody>
+                </table>
 
             </div>
-
-        </form>
-
-        <div id="formMessage" class="message" role="status"></div>
-    </section>
-
-    <!-- SEARCH -->
-    <section class="card">
-        <h2>Search Student Records</h2>
-
-        <input type="text" id="searchInput"
-               placeholder="Search by Student ID or Name"
-               oninput="loadStudents()">
-
-        <button onclick="clearSearch()">Clear Search</button>
-    </section>
-
-    <!-- MY RECORDS -->
-    <section class="card">
-
-        <h2>My Records</h2>
-
-        <span class="source-label">Source: My SQLite Database</span>
-
-        <button onclick="loadStudents()">Refresh My Records</button>
-
-        <div id="studentsResult" class="result">
-            Loading records...
         </div>
+    </div>
 
-    </section>
+    <footer class="text-center text-muted mt-4">
+        Laboratory Data Management System
+    </footer>
 
-    <!-- STUDENT DETAILS -->
-    <section class="card">
-        <h2>My Student Details</h2>
+</div>
 
-        <div id="detailsResult" class="result">
-            Select View Details from My Records.
-        </div>
-    </section>
-
-    <!-- CLASSMATE RECORDS -->
-    <section class="card">
-
-        <h2>Classmate's Records</h2>
-
-        <span class="source-label">Source: Classmate's Remote API (Read-Only)</span>
-
-        <p>Enter your classmate's deployed API URL.</p>
-
-        <input type="url" id="classmateAPI"
-               style="width:100%"
-               placeholder="https://classmate-app.onrender.com/api/students">
-
-        <button onclick="loadClassmateRecords()">
-            Retrieve Classmate's Records
-        </button>
-
-        <div id="classmateMessage" class="message" role="status"></div>
-
-        <div id="classmateResult" class="result"></div>
-
-    </section>
-
-    <!-- REMOTE DETAILS -->
-    <section class="card">
-
-        <h2>Classmate's Student Details</h2>
-
-        <p>Select View Details from your classmate's records.</p>
-
-        <div id="remoteDetails" class="result">
-            No remote student selected.
-        </div>
-
-    </section>
-
-    <!-- OTHER API ENDPOINTS -->
-    <section class="card">
-
-        <h2>Other API Endpoints</h2>
-
-        <button onclick="loadEndpoint('/teacher', 'otherResult')">
-            Teacher
-        </button>
-
-        <button onclick="loadEndpoint('/subjects', 'otherResult')">
-            Subjects
-        </button>
-
-        <button onclick="loadEndpoint('/schedule', 'otherResult')">
-            Schedule
-        </button>
-
-        <button onclick="loadEndpoint('/about', 'otherResult')">
-            About
-        </button>
-
-        <button onclick="loadEndpoint('/api', 'otherResult')">
-            General API
-        </button>
-
-        <div id="otherResult" class="result"></div>
-
-    </section>
-
-</main>
-
-<footer>
-    MIDTERMPROJECT | Flask + SQLite | Laboratory Activity 8
-    <br>
-    Developer: Arnie Beliran
-</footer>
-
-
-<script>
-
-    // --------------------------------------------------
-    // GLOBAL VARIABLES
-    // --------------------------------------------------
-
-    let editingId = null;
-    let remoteStudents = [];
-
-
-    // --------------------------------------------------
-    // FETCH JSON
-    // --------------------------------------------------
-
-    async function fetchJSON(url, options = {}) {
-
-        const response = await fetch(url, options);
-
-        let data;
-
-        try {
-            data = await response.json();
-        } catch {
-            throw new Error("Invalid server response.");
-        }
-
-        if (!response.ok) {
-            throw new Error(data.error || "Request failed.");
-        }
-
-        return data;
-    }
-
-
-    // --------------------------------------------------
-    // DISPLAY JSON
-    // --------------------------------------------------
-
-    function showJSON(elementId, data) {
-
-        const container = document.getElementById(elementId);
-
-        container.innerHTML = "";
-
-        const pre = document.createElement("pre");
-
-        pre.textContent = JSON.stringify(data, null, 2);
-
-        container.appendChild(pre);
-    }
-
-
-    // --------------------------------------------------
-    // DISPLAY ERRORS
-    // --------------------------------------------------
-
-    function showError(elementId, error) {
-
-        const container = document.getElementById(elementId);
-
-        container.textContent = "Error: " + error.message;
-
-        container.className = "message error";
-    }
-
-
-    // --------------------------------------------------
-    // LOAD GENERAL API ENDPOINTS
-    // --------------------------------------------------
-
-    async function loadEndpoint(url, elementId) {
-
-        try {
-
-            const data = await fetchJSON(url);
-
-            showJSON(elementId, data);
-
-        } catch (error) {
-
-            showError(elementId, error);
-
-        }
-    }
-
-
-    // --------------------------------------------------
-    // GREETING API
-    // --------------------------------------------------
-
-    async function loadGreeting() {
-
-        const name = document.getElementById("greetingName")
-            .value.trim();
-
-        const url = "/hello?name=" +
-            encodeURIComponent(name || "Student");
-
-        await loadEndpoint(url, "greetingResult");
-    }
-
-
-    // --------------------------------------------------
-    // READ: LOAD MY STUDENTS
-    // --------------------------------------------------
-
-    async function loadStudents() {
-
-        const container = document.getElementById("studentsResult");
-
-        container.textContent = "Loading student records...";
-
-        try {
-
-            const students = await fetchJSON("/api/students");
-
-            container.innerHTML = "";
-
-            const search = document.getElementById("searchInput")
-                .value.trim().toLowerCase();
-
-            const filtered = students.filter(student => {
-
-                return (
-                    String(student.name).toLowerCase().includes(search) ||
-                    String(student.student_id).toLowerCase().includes(search)
-                );
-
-            });
-
-            if (filtered.length === 0) {
-
-                container.textContent = "No student records found.";
-
-                return;
-            }
-
-            filtered.forEach(student => {
-
-                const item = document.createElement("div");
-
-                item.className = "student";
-
-                const info = document.createElement("div");
-
-                info.innerHTML = `
-                    <strong>Database ID:</strong> ${escapeHTML(student.id)}
-                    <br>
-                    <strong>Student ID:</strong> ${escapeHTML(student.student_id)}
-                    <br>
-                    <strong>Name:</strong> ${escapeHTML(student.name)}
-                    <br>
-                    <strong>Program:</strong> ${escapeHTML(student.program)}
-                    <br>
-                    <strong>Year:</strong> ${escapeHTML(student.year)}
-                    <br>
-                    <strong>Section:</strong> ${escapeHTML(student.section)}
-                `;
-
-                const actions = document.createElement("div");
-
-                actions.className = "student-actions";
-
-                const detailsBtn = document.createElement("button");
-
-                detailsBtn.className = "details-btn";
-                detailsBtn.textContent = "View Details";
-
-                detailsBtn.onclick = () => viewStudentDetails(student.id);
-
-                const editBtn = document.createElement("button");
-
-                editBtn.className = "edit-btn";
-                editBtn.textContent = "Edit";
-
-                editBtn.onclick = () => editStudent(student);
-
-                const deleteBtn = document.createElement("button");
-
-                deleteBtn.className = "delete-btn";
-                deleteBtn.textContent = "Delete";
-
-                deleteBtn.onclick = () => deleteStudent(student.id);
-
-                actions.append(detailsBtn, editBtn, deleteBtn);
-
-                item.append(info, actions);
-
-                container.appendChild(item);
-
-            });
-
-        } catch (error) {
-
-            showError("studentsResult", error);
-
-        }
-    }
-
-
-    // --------------------------------------------------
-    // ESCAPE HTML
-    // --------------------------------------------------
-
-    function escapeHTML(value) {
-
-        return String(value ?? "").replace(/[&<>"']/g, character => ({
-            "&": "&amp;",
-            "<": "&lt;",
-            ">": "&gt;",
-            '"': "&quot;",
-            "'": "&#39;"
-        })[character]);
-
-    }
-
-
-    // --------------------------------------------------
-    // CREATE AND UPDATE
-    // --------------------------------------------------
-
-    document.getElementById("studentForm")
-        .addEventListener("submit", async function(event) {
-
-            event.preventDefault();
-
-            const student = {
-
-                student_id: document.getElementById("studentId").value.trim(),
-
-                name: document.getElementById("studentName").value.trim(),
-
-                program: document.getElementById("program").value.trim(),
-
-                year: Number(document.getElementById("year").value),
-
-                section: document.getElementById("section").value.trim().toUpperCase()
-
-            };
-
-            const message = document.getElementById("formMessage");
-
-            if (
-                !student.student_id ||
-                !student.name ||
-                !student.program ||
-                !student.year ||
-                !student.section
-            ) {
-
-                message.textContent = "Please complete all fields.";
-
-                message.className = "message error";
-
-                return;
-            }
-
-            if (!Number.isInteger(student.year) ||
-                student.year < 1 || student.year > 6) {
-
-                message.textContent = "Year level must be from 1 to 6.";
-
-                message.className = "message error";
-
-                return;
-            }
-
-            const isEditing = editingId !== null;
-
-            const url = isEditing
-                ? `/api/students/${editingId}`
-                : "/api/students";
-
-            const method = isEditing ? "PUT" : "POST";
-
-            message.textContent = "Saving student...";
-
-            try {
-
-                const result = await fetchJSON(url, {
-
-                    method: method,
-
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-
-                    body: JSON.stringify(student)
-
-                });
-
-                message.textContent = result.message;
-
-                message.className = "message success";
-
-                document.getElementById("studentForm").reset();
-
-                cancelEdit();
-
-                await loadStudents();
-
-            } catch (error) {
-
-                message.textContent = "Error: " + error.message;
-
-                message.className = "message error";
-
-            }
-
-        });
-
-
-    // --------------------------------------------------
-    // EDIT STUDENT
-    // --------------------------------------------------
-
-    function editStudent(student) {
-
-        editingId = student.id;
-
-        document.getElementById("formTitle").textContent =
-            "Edit Student Record";
-
-        document.getElementById("saveButton").textContent =
-            "Update Student";
-
-        document.getElementById("cancelButton").hidden = false;
-
-        document.getElementById("studentId").value =
-            student.student_id;
-
-        document.getElementById("studentName").value =
-            student.name;
-
-        document.getElementById("program").value =
-            student.program;
-
-        document.getElementById("year").value =
-            student.year;
-
-        document.getElementById("section").value =
-            student.section;
-
-        document.getElementById("formMessage").textContent =
-            "Editing student ID: " + student.id;
-
-        document.getElementById("formTitle")
-            .scrollIntoView({ behavior: "smooth" });
-
-    }
-
-
-    // --------------------------------------------------
-    // CANCEL EDIT
-    // --------------------------------------------------
-
-    function cancelEdit() {
-
-        editingId = null;
-
-        document.getElementById("studentForm").reset();
-
-        document.getElementById("formTitle").textContent =
-            "Add New Student";
-
-        document.getElementById("saveButton").textContent =
-            "Add Student";
-
-        document.getElementById("cancelButton").hidden = true;
-
-    }
-
-
-    // --------------------------------------------------
-    // DELETE STUDENT
-    // --------------------------------------------------
-
-    async function deleteStudent(id) {
-
-        const confirmDelete = confirm(
-            "Are you sure you want to delete this student?"
-        );
-
-        if (!confirmDelete) return;
-
-        try {
-
-            const result = await fetchJSON(
-                `/api/students/${id}`,
-                {
-                    method: "DELETE"
-                }
-            );
-
-            alert(result.message);
-
-            await loadStudents();
-
-            document.getElementById("detailsResult").textContent =
-                "Select View Details from My Records.";
-
-        } catch (error) {
-
-            alert("Error: " + error.message);
-
-        }
-
-    }
-
-
-    // --------------------------------------------------
-    // VIEW LOCAL STUDENT DETAILS
-    // --------------------------------------------------
-
-    async function viewStudentDetails(id) {
-
-        try {
-
-            const student = await fetchJSON(`/api/students/${id}`);
-
-            showJSON("detailsResult", student);
-
-        } catch (error) {
-
-            showError("detailsResult", error);
-
-        }
-
-    }
-
-
-    // --------------------------------------------------
-    // CLEAR SEARCH
-    // --------------------------------------------------
-
-    function clearSearch() {
-
-        document.getElementById("searchInput").value = "";
-
-        loadStudents();
-
-    }
-
-
-    // --------------------------------------------------
-    // CLASSMATE API - READ ONLY
-    // --------------------------------------------------
-
-    async function loadClassmateRecords() {
-
-        const apiURL = document.getElementById("classmateAPI")
-            .value.trim();
-
-        const container = document.getElementById("classmateResult");
-
-        const message = document.getElementById("classmateMessage");
-
-        document.getElementById("remoteDetails").textContent =
-            "No remote student selected.";
-
-        if (!apiURL) {
-
-            message.textContent = "Please enter your classmate's API URL.";
-
-            message.className = "message error";
-
-            return;
-        }
-
-        if (!apiURL.startsWith("https://")) {
-
-            message.textContent = "Please use a valid HTTPS API URL.";
-
-            message.className = "message error";
-
-            return;
-        }
-
-        message.textContent = "Retrieving classmate's records...";
-
-        message.className = "message";
-
-        container.textContent = "Loading...";
-
-        try {
-
-            const proxyURL = "/api/proxy/classmate?url=" +
-                encodeURIComponent(apiURL);
-
-            const students = await fetchJSON(proxyURL);
-
-            if (!Array.isArray(students)) {
-
-                throw new Error("Classmate API must return a list of records.");
-
-            }
-
-            remoteStudents = students;
-
-            container.innerHTML = "";
-
-            if (students.length === 0) {
-
-                container.textContent = "No remote records found.";
-
-            } else {
-
-                students.forEach((student, index) => {
-
-                    const item = document.createElement("div");
-
-                    item.className = "student";
-
-                    const info = document.createElement("div");
-
-                    info.innerHTML = `
-                        <strong>Student ID:</strong>
-                        ${escapeHTML(student.student_id)}
-                        <br>
-                        <strong>Name:</strong>
-                        ${escapeHTML(student.name)}
-                        <br>
-                        <strong>Program:</strong>
-                        ${escapeHTML(student.program)}
-                        <br>
-                        <strong>Year:</strong>
-                        ${escapeHTML(student.year)}
-                        <br>
-                        <strong>Section:</strong>
-                        ${escapeHTML(student.section)}
-                    `;
-
-                    const detailsBtn = document.createElement("button");
-
-                    detailsBtn.className = "details-btn";
-
-                    detailsBtn.textContent = "View Remote Details";
-
-                    detailsBtn.onclick = () => viewRemoteDetails(index);
-
-                    item.append(info, detailsBtn);
-
-                    container.appendChild(item);
-
-                });
-
-            }
-
-            message.textContent =
-                "Successfully retrieved " + students.length +
-                " classmate record(s).";
-
-            message.className = "message success";
-
-        } catch (error) {
-
-            container.innerHTML = "";
-
-            message.textContent = "Error: " + error.message;
-
-            message.className = "message error";
-
-        }
-
-    }
-
-
-    // --------------------------------------------------
-    // VIEW REMOTE STUDENT DETAILS
-    // READ ONLY - NO UPDATE OR DELETE
-    // --------------------------------------------------
-
-    function viewRemoteDetails(index) {
-
-        const student = remoteStudents[index];
-
-        if (!student) return;
-
-        showJSON("remoteDetails", student);
-
-    }
-
-
-    // --------------------------------------------------
-    // LOAD STUDENTS WHEN PAGE OPENS
-    // --------------------------------------------------
-
-    document.addEventListener("DOMContentLoaded", function() {
-
-        loadStudents();
-
-    });
-
-</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
